@@ -181,10 +181,10 @@ class MLAT:
             bounds[0, i] = np.min(bounds_temp[:, i])
             bounds[1, i] = np.max(bounds_temp[:, i])
 
-        if time_threshold is None:
-            time_threshold = 1.0 / n_trial
+        #if time_threshold is None:
+        #    time_threshold = 1.0 / n_trial
 
-        ranges = np.empty(n)
+        #ranges = np.empty(n)
         result = pd.DataFrame(columns=['estimator', 'error'],
                               index=np.arange(n_trial))
         for i in range(n_trial):
@@ -194,20 +194,13 @@ class MLAT:
             referecne0[-1] = height
             reference = np.copy(referecne0)
 
-            t0 = time()
-
-            alpha = 1
             for _ in range(20):
                 A = MLAT.compute_jacobian2_5D(anchors, reference)
                 errors = MLAT.compute_errors(anchors, ranges_in, reference)
                 try:
                     delta = np.dot(np.dot(np.linalg.inv(np.dot(np.transpose(A), A)), np.transpose(A)), errors)
                 except:
-                    continue
-                # for j in range(n):
-                #    delta += (ranges_in[j] - ranges[j]) / ranges[j] * \
-                #             (estimator - anchors[j, :])
-                # delta *= 2 * alpha
+                    break
                 delta = np.append(delta, [0])
                 estimator_next = reference + delta
                 estimator_next = MLAT.correct_Z(estimator_next,base_station,height)
@@ -219,6 +212,8 @@ class MLAT:
                 else:
                     result['estimator'][i] = reference
                     result['error'][i] = np.linalg.norm(errors)
+                    if result['error'][i]<(10**(-9)):
+                        return result
                     break
                 # if time() - t0 > time_threshold:
                 #   break

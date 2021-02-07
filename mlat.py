@@ -170,7 +170,7 @@ class MLAT:
     #-----------------------------------------------------
     @staticmethod
     def taylor2_5D_sphere(anchors_in, ranges_in, height, bounds_in=((0, 0, 0),), base_station=None, # TO DO Metoda wymaga znajomość varinacji
-                   n_trial=100, time_threshold=None):
+                   n_trial=5, time_threshold=None):
         anchors = np.array(anchors_in, dtype=float)
         n, dim = anchors.shape
         bounds_temp = anchors
@@ -185,45 +185,51 @@ class MLAT:
         #    time_threshold = 1.0 / n_trial
 
         #ranges = np.empty(n)
-        result = pd.DataFrame(columns=['estimator', 'error'],
+        result = pd.DataFrame(columns=['estimator', 'error','iterations'],
                               index=np.arange(n_trial))
         for i in range(n_trial):
-            referecne0 = np.empty(dim)
+            reference = np.empty(dim)
             for j in range(dim - 1):
-                referecne0[j] = np.random.uniform(bounds[0, j], bounds[1, j])
-            referecne0[-1] = height
-            reference = np.copy(referecne0)
-
-            for _ in range(20):
+                reference[j] = np.random.uniform(bounds[0, j], bounds[1, j])
+            reference[-1] = height
+            tresh = (10**(3))
+            for iter in range(50000):
                 A = MLAT.compute_jacobian2_5D(anchors, reference)
                 errors = MLAT.compute_errors(anchors, ranges_in, reference)
+                tran_A = np.transpose(A)
                 try:
-                    delta = np.dot(np.dot(np.linalg.inv(np.dot(np.transpose(A), A)), np.transpose(A)), errors)
+                    delta = np.dot(np.dot(np.linalg.inv(np.dot(tran_A, A)), tran_A ), errors)
                 except:
                     break
                 delta = np.append(delta, [0])
                 estimator_next = reference + delta
-                estimator_next = MLAT.correct_Z(estimator_next,base_station,height)
+                if iter>-1:
+                    estimator_next = MLAT.correct_Z(estimator_next,base_station,height)
 
                 error_next = MLAT.compute_errors(anchors, ranges_in, estimator_next)
 
-                if np.linalg.norm(error_next) < np.linalg.norm(errors):
+                if (iter<3) or(np.linalg.norm(error_next) < np.linalg.norm(errors)):
+                    #err=np.linalg.norm(error_next)
                     reference = estimator_next
                 else:
                     result['estimator'][i] = reference
                     result['error'][i] = np.linalg.norm(errors)
-                    if result['error'][i]<(10**(-9)):
+                    result['iterations'][i] = iter
+                    if result['error'][i]<tresh or (iter>9) :
                         return result
+
                     break
                 # if time() - t0 > time_threshold:
                 #   break
+
         return result
 
     @staticmethod
     def correct_Z(estimator, base_station, height):
         geo = pm.enu2geodetic(estimator[0],estimator[1],estimator[2],base_station[0],base_station[1],base_station[2])
         new_estimator = pm.geodetic2enu(geo[0],geo[1],height,base_station[0],base_station[1],base_station[2])
-        return new_estimator
+        #geo2 = pm.enu2geodetic(new_estimator[0],new_estimator[1],new_estimator[2],base_station[0],base_station[1],base_station[2])
+        return new_estimator#new_estimator
 
 
     @staticmethod
@@ -355,8 +361,9 @@ class MLAT:
     def compute_errors(anchors, ranges_in, reference):
         ranges_in = ranges_in[0:-1] - ranges_in[-1]
         computed_ranges = np.zeros(len(ranges_in))
+        ref = np.linalg.norm(anchors[-1]-reference)
         for i in range(len(ranges_in)):
-            computed_ranges[i] = np.linalg.norm(anchors[i]-reference) - np.linalg.norm(anchors[-1]-reference)
+            computed_ranges[i] = np.linalg.norm(anchors[i]-reference) - ref
         errors = ranges_in-computed_ranges
         return errors
 

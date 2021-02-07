@@ -287,9 +287,12 @@ for _ in range(500):
     indexes.append(i)
     i = i + 1
 
+errors_ranges.sort()
+print(errors_ranges)
+print(statistics.mean(errors_ranges))
 errors.sort()
 print(errors)
-print(statistics.median(errors))
+print(statistics.mean(errors))
 plt.plot(indexes[0:len(times)],times)
 plt.plot(indexes[0:len(times2)],times2)
 

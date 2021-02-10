@@ -11,22 +11,25 @@ class receiver:
     def __init__(self,position):
         self.position=position
 
-Altitude = 1
-MLAT_latitude=2
-MLAT_longitude=3
-ADSB_latitude=4
-ADSB_longitude=5
-Error=6
-Station_0=7
-Station_1=8
-TDOA1=9
-TDOA1_ADSB=10
-TDOA1_error=11
-Station_2=12
-TDOA2=13
-TDOA2_ADSB=14
-TDOA2_error=15
-Name = 0
+Altitude = 0
+MLAT_latitude=1
+MLAT_longitude=2
+ADSB_latitude=3
+ADSB_longitude=4
+Error=5
+Station_0=6
+Station_1=7
+TDOA1=8
+TDOA1_ADSB=9
+TDOA1_error=10
+Station_2=11
+TDOA2=12
+TDOA2_ADSB=13
+TDOA2_error=14
+Station_3=15
+TDOA3=16
+TDOA3_ADSB=17
+TDOA3_error=18
 
 c = 299792458/ 1.0003#m/s
 
@@ -60,32 +63,34 @@ def transform_axis(estimator,st0):
         out = pm.enu2geodetic(estimator[0],estimator[1],estimator[2],position[0],position[1],position[2])
     except:
         return None
+        print(st0)
+    '''
+    METERS_PER_DEGREE_X = R*np.cos(position[0]*2*np.pi/360)*2*np.pi/360
+    out = np.zeros(3)
+    out[2] = estimator[2]
+    out[0] = position[0] + estimator[0]/METERS_PER_DEGREE_Y
+    out[1] = position[1] + estimator[1]/METERS_PER_DEGREE_X
+    out2 = np.zeros(3)
+    out2[2] = estimator[2]
+    out2[0] = position[0] - estimator[0]/METERS_PER_DEGREE_Y
+    out2[1] = position[1] - estimator[1]/METERS_PER_DEGREE_X
+    '''
     return out
 
 
-def check_ranges(TDOA):
+def check_ranges(TDOA1,TDOA2,TDOA3):
     ranges = [0]
     parameter = c/(10**9)
-    for T in TDOA:
-        ranges.append(T*parameter)
+    ranges.append(TDOA1*parameter)
+    ranges.append(TDOA2*parameter)
+    ranges.append(TDOA3*parameter)
     return ranges
 
 
-def check_station(st):
-    position = check_positions_of_stations(st)
-    position_xyz2 = np.zeros([len(st),3])
-
-    for i in range(3):
-        position_xyz2[i,:] = pm.geodetic2enu(position[i,0],position[i,1],position[i,2],position[0,0],position[0,1],position[0,2])
-    bounds = np.array([[np.min(position_xyz2[:,0]),np.min(position_xyz2[:,1]),np.min(position_xyz2[:,2])],[np.max(position_xyz2[:,0]),np.max(position_xyz2[:,1]),np.max(position_xyz2[:,2])]])
-
-    return position_xyz2,bounds,position
-
-
-
-def check_station_old(st0,st1,st2):
-    position = check_positions_of_stations([st0,st1,st2])
-    position_xyz = np.zeros([3,3])
+def check_station(st0,st1,st2,st3):
+    position = check_positions_of_stations([st0,st1,st2,st3])
+    position_xyz = np.zeros([4,3])
+    position_xyz2 = np.zeros([4,3])
 
     #for station in stations:
     #    if st0 == station[0]:
@@ -94,12 +99,51 @@ def check_station_old(st0,st1,st2):
     #        position[1,:] = station[1::]
     #    if st2 == station[0]:
     #        position[2,:] = station[1::]
-    for i in range(3):
-        position_xyz[i,:] = pm.geodetic2ecef(position[i,0],position[i,1],position[i,2])
+    for i in range(4):
+        position_xyz2[i,:] = pm.geodetic2enu(position[i,0],position[i,1],position[i,2],position[0,0],position[0,1],position[0,2])
     bounds = np.array([[np.min(position_xyz[:,0]),np.min(position_xyz[:,1]),np.min(position_xyz[:,2])],[np.max(position_xyz[:,0]),np.max(position_xyz[:,1]),np.max(position_xyz[:,2])]])
 
+    '''
+    METERS_PER_DEGREE_X = R*np.cos(position[0,0]*2*np.pi/360)*2*np.pi/360
+    position_xyz[0,2] = position[0,2]
+    position_xyz[1,2] = position[1,2]
+    position_xyz[2,2] = position[2,2]
+    position_xyz[1,0] = (position[1,1]- position[0,1])*METERS_PER_DEGREE_X
+    position_xyz[2,0] = (position[2,1]- position[0,1])*METERS_PER_DEGREE_X
+    position_xyz[1,1] = (position[1,0]- position[0,0])*METERS_PER_DEGREE_Y
+    position_xyz[2,1] = (position[2,0]- position[0,0])*METERS_PER_DEGREE_Y
+    '''
+    return position_xyz2,bounds,position
 
-    return position_xyz,bounds,position
+
+
+def check_station_old(st0,st1,st2,st3):
+    position = check_positions_of_stations([st0,st1,st2,st3])
+    position_xyz = np.zeros([4,3])
+    position_xyz2 = np.zeros([4,3])
+
+    #for station in stations:
+    #    if st0 == station[0]:
+    #        position[0,:] = station[1::]
+    #    if st1 == station[0]:
+    #        position[1,:] = station[1::]
+    #    if st2 == station[0]:
+    #        position[2,:] = station[1::]
+    for i in range(4):
+        position_xyz2[i,:] = pm.geodetic2ecef(position[i,0],position[i,1],position[i,2])
+    bounds = np.array([[np.min(position_xyz[:,0]),np.min(position_xyz[:,1]),np.min(position_xyz[:,2])],[np.max(position_xyz[:,0]),np.max(position_xyz[:,1]),np.max(position_xyz[:,2])]])
+
+    '''
+    METERS_PER_DEGREE_X = R*np.cos(position[0,0]*2*np.pi/360)*2*np.pi/360
+    position_xyz[0,2] = position[0,2]
+    position_xyz[1,2] = position[1,2]
+    position_xyz[2,2] = position[2,2]
+    position_xyz[1,0] = (position[1,1]- position[0,1])*METERS_PER_DEGREE_X
+    position_xyz[2,0] = (position[2,1]- position[0,1])*METERS_PER_DEGREE_X
+    position_xyz[1,1] = (position[1,0]- position[0,0])*METERS_PER_DEGREE_Y
+    position_xyz[2,1] = (position[2,0]- position[0,0])*METERS_PER_DEGREE_Y
+    '''
+    return position_xyz2,bounds,position
 
 def compute_position_error(estimator_earth_axis,lat,long,alt):
     #return np.linalg.norm([abs(estimator_earth_axis[0]-lat),abs(estimator_earth_axis[1]-long),abs(estimator_earth_axis[2]-alt)])
@@ -107,10 +151,10 @@ def compute_position_error(estimator_earth_axis,lat,long,alt):
     return np.linalg.norm(helper)
 
 
-def compute_ranges_error(estimator_earth_axis,st,ranges):
-    position = check_positions_of_stations(st)
-    range_computed = np.zeros(len(st))
-    for i in range(len(st)):
+def compute_ranges_error(estimator_earth_axis,st0,st1,st2,st3,ranges):
+    position = check_positions_of_stations([st0,st1,st2,st3])
+    range_computed = np.zeros(4)
+    for i in range(4):
         range_computed[i] = np.linalg.norm(pm.geodetic2enu(estimator_earth_axis[0],estimator_earth_axis[1],
                                                         estimator_earth_axis[2],position[i,0],position[i,1],position[i,2]))
     range_computed = range_computed-range_computed[0]
@@ -125,33 +169,36 @@ def compute_position_old_error(ADSB_lat,ADSB_long,alt,MLAT_lat,MLAT_long):
 
 data = []
 
-df = pd.DataFrame(data, columns = ['Name','Altitude', 'MLAT_latitude','MLAT_longitude','ADSB_latitude','ADSB_longitude',
+df = pd.DataFrame(data, columns = ['Altitude', 'MLAT_latitude','MLAT_longitude','ADSB_latitude','ADSB_longitude',
                                    'Error','Station_0','Station_1','TDOA1','TDOA1_ADSB','TDOA1_error','Station_2','TDOA2',
-                                   'TDOA2_ADSB','TDOA2_error'])
+                                   'TDOA2_ADSB','TDOA2_error','Station_3','TDOA3',
+                                   'TDOA3_ADSB','TDOA3_error'])
 i=0
 helper = []
-with open('output_clean.txt') as f:
+with open('output_clean4.txt') as f:
     for line in f:
-        if i%8==0:
-            helper.append(float.fromhex(line.split()[1][1:-1]))
+        if i%9==0:
             helper.append(float(line.split()[3]))
-        elif i%8==1:
+        elif i%9==1:
             helper.append(float(line.split()[2][0:-1]))
             helper.append(float(line.split()[3]))
-        elif i%8==2:
+        elif i%9==2:
             helper.append(float(line.split()[2][0:-1]))
             helper.append(float(line.split()[3]))
-        elif i % 8 == 3:
+        elif i % 9 == 3:
             helper.append(float(line.split()[6][0:-2]))
-        elif i % 8 == 4:
+        elif i % 9 == 4:
             helper.append(float(line.split()[0]))
-        elif i % 8 == 5:
+        elif i % 9 == 5:
             for l in line.split():
                 helper.append(float(l))
-        elif i % 8 == 6:
+        elif i % 9 == 6:
             for l in line.split():
                 helper.append(float(l))
-        elif i%8 ==7:
+        elif i % 9 == 7:
+            for l in line.split():
+                helper.append(float(l))
+        elif i%9 ==8:
             #for i in range(len(helper)):
             #    if helper[i][-2::] == '\n':
             #        helper[i] = helper[0:-2]
@@ -160,7 +207,7 @@ with open('output_clean.txt') as f:
 
 
         i = i+1
-        if i==(8*100):
+        if i==(8*5000):
             break
 row = df.to_numpy()
 errors_positions=[]
@@ -174,14 +221,16 @@ mean_time_needed=0
 times=[]
 times2=[]
 avoided_index=[]
-'''
+
 for index in range(len(df)):
 
-    anchors,bounds,positions = check_station_old(row[index][Station_0],row[index][Station_1],row[index][Station_2])
+    anchors,bounds,positions = check_station_old(row[index][Station_0],row[index][Station_1],row[index][Station_2],row[index][Station_3])
     #node = check_node(row['ADSB_latitude'],row['ADSB_longitude'],row['Altitude'],row['Station_0'],row['station_1'])
-    #ranges = check_ranges([row[index][TDOA1],row[index][TDOA2]])
+    #ranges = check_ranges(row[index][TDOA1],row[index][TDOA2])
 
-    measurments=[[receiver(anchors[0]),0,0.00001],[receiver(anchors[1]),row[index][TDOA1]*10**(-9),0.00001],[receiver(anchors[2]),row[index][TDOA2]*10**(-9),0.00001]]
+    measurments=[[receiver(anchors[0]),0,0.00001],[receiver(anchors[1]),row[index][TDOA1]*10**(-9),0.00001],
+                 [receiver(anchors[2]),row[index][TDOA2]*10**(-9),0.00001],[receiver(anchors[3]),
+                                                                            row[index][TDOA3]*10**(-9),0.00001]]
 
     t = time.time()
     estimator, result= solve(measurments,row[index][Altitude],0.3038*250,(anchors[0]+anchors[1]+anchors[2])/3)#MLAT.mlat(anchors, ranges,height=row[index][Altitude],method='taylor2.5D_sphere',base_station=positions[0,:])
@@ -197,7 +246,7 @@ for index in range(len(df)):
     #estimator_earth_axis = transform_axis(estimator,row[index][Station_0])
     if estimator_earth_axis is None:
         continue
-    errors_positions.append(compute_position_error(estimator_earth_axis,row[index][ADSB_latitude],row[index][ADSB_longitude],row[index][Altitude]))
+    #errors_positions.append(compute_position_error(estimator_earth_axis,row[index][ADSB_latitude],row[index][ADSB_longitude],row[index][Altitude]))
     mean_time_needed += time.time()-t
     #corrected_estimation = ( estimator_earth_axis[0],estimator_earth_axis[1],row['Altitude'])
     #errors_positions_correct_alt.append(
@@ -206,19 +255,19 @@ for index in range(len(df)):
     #errors_ranges_correct_alt.append(compute_ranges_error(corrected_estimation,row['Station_0'],row['Station_1'],row['Station_2'],ranges))
     #errors_ranges_old.append(compute_ranges_error((row[index][MLAT_latitude],row[index][MLAT_longitude],row[index][Altitude]),row[index][Station_0],row[index][Station_1],row[index][Station_2],ranges))
 
-    errors_positions_old.append(compute_position_old_error(row[index][ADSB_latitude],row[index][ADSB_longitude],row[index][Altitude],row[index][MLAT_latitude],row[index][MLAT_longitude]))
+    #errors_positions_old.append(compute_position_old_error(row[index][ADSB_latitude],row[index][ADSB_longitude],row[index][Altitude],row[index][MLAT_latitude],row[index][MLAT_longitude]))
 
     #errors_ranges.append(compute_ranges_error(row['TDOA1_error']+row['TDOA2_error']))
     #print(1)
-'''
-#mean_time_needed=0
+mean_time_needed=0
 for index in range(len(df)):
     if index in avoided_index:
         continue
-
-    anchors,bounds,positions = check_station([row[index][Station_0],row[index][Station_1],row[index][Station_2]])
+    if index == 30:
+        qwe=2
+    anchors,bounds,positions = check_station(row[index][Station_0],row[index][Station_1],row[index][Station_2],row[index][Station_3])
     #node = check_node(row['ADSB_latitude'],row['ADSB_longitude'],row['Altitude'],row['Station_0'],row['station_1'])
-    ranges = check_ranges([row[index][TDOA1],row[index][TDOA2]])
+    ranges = check_ranges(row[index][TDOA1],row[index][TDOA2],row[index][TDOA3])
     t = time.time()
     estimator, result= MLAT.mlat(anchors, ranges,height=row[index][Altitude],method='taylor2.5D_sphere',base_station=positions[0,:])
     estimator_earth_axis = transform_axis(estimator,row[index][Station_0])
@@ -230,22 +279,24 @@ for index in range(len(df)):
     errors_positions.append(compute_position_error(estimator_earth_axis,row[index][ADSB_latitude],row[index][ADSB_longitude],row[index][Altitude]))
     errors_positions_old.append(compute_position_old_error(row[index][ADSB_latitude],row[index][ADSB_longitude],row[index][Altitude],row[index][MLAT_latitude],row[index][MLAT_longitude]))
     errors_ranges.append(
-        compute_ranges_error(estimator_earth_axis,[ row[index][Station_0], row[index][Station_1], row[index][Station_2]],
+        compute_ranges_error(estimator_earth_axis, row[index][Station_0], row[index][Station_1], row[index][Station_2],row[index][Station_3],
                              ranges))
     errors_ranges_old.append(
         compute_ranges_error((row[index][MLAT_latitude], row[index][MLAT_longitude], row[index][Altitude]),
-                             [row[index][Station_0], row[index][Station_1], row[index][Station_2]], ranges))
+                             row[index][Station_0], row[index][Station_1], row[index][Station_2],row[index][Station_3], ranges))
 
     times2.append(mean_time_needed)
 print('time needed')
 print(mean_time_needed)
-#errors=[]
+errors=[]
 indexes=[]
 i=0
-#for e1,e2 in zip(errors_positions,errors_positions_old):
-#    errors.append(e1/e2)
-#    indexes.append(i)
-#    i=i+1
+for e1,e2 in zip(errors_positions,errors_positions_old):
+    errors.append(e1/e2)
+    indexes.append(i)
+    i=i+1
+    if (e1/e2)>1.6:
+        print(i)
 for _ in range(500):
     indexes.append(i)
     i = i + 1
@@ -253,12 +304,22 @@ for _ in range(500):
 errors_ranges.sort()
 print(errors_ranges)
 print(statistics.mean(errors_ranges))
-#errors.sort()
-#print(errors)
-#print(statistics.mean(errors))
-#plt.plot(indexes[0:len(times)],times)
-plt.plot(indexes[0:len(times2)],times2)
+errors.sort()
+print(errors)
+print(statistics.median(errors))
+
+plt.plot(indexes[0:len(errors)],errors)
+plt.plot([0,150],[1,1])
+plt.yscale('symlog')
 
 plt.show()
+plt.plot(indexes[0:len(times)],times)
+plt.plot(indexes[0:len(times2)],times2,'g')
+plt.show()
+
 # 1.092956228277192
 # 0.9972731789855185
+
+#median błąd dla czeterach
+
+#0.9843103799210396

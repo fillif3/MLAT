@@ -195,6 +195,8 @@ class MLAT:
             tresh = (10**(3))
             for iter in range(50000):
                 A = MLAT.compute_jacobian2_5D(anchors, reference)
+                #u,s,v = np.linalg.svd(A,full_matrices=True)
+                #A=np.dot(u,v)*s[0]
                 errors = MLAT.compute_errors(anchors, ranges_in, reference)
                 tran_A = np.transpose(A)
                 try:
@@ -209,7 +211,7 @@ class MLAT:
                 error_next = MLAT.compute_errors(anchors, ranges_in, estimator_next)
 
                 if (iter<3) or(np.linalg.norm(error_next) < np.linalg.norm(errors)):
-                    #err=np.linalg.norm(error_next)
+                    err=np.linalg.norm(error_next)
                     reference = estimator_next
                 else:
                     result['estimator'][i] = reference

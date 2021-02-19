@@ -6,26 +6,31 @@ import matplotlib.pyplot as plt
 import statistics
 import time
 from comparison import solve
+from ufir import StateEstimation
+from kalman import KalmanMLAT
+from pf import Cloud
 
 class receiver:
     def __init__(self,position):
         self.position=position
 
 Altitude = 1
-MLAT_latitude=2
-MLAT_longitude=3
-ADSB_latitude=4
-ADSB_longitude=5
-Error=6
-Station_0=7
-Station_1=8
-TDOA1=9
-TDOA1_ADSB=10
-TDOA1_error=11
-Station_2=12
-TDOA2=13
-TDOA2_ADSB=14
-TDOA2_error=15
+Mlat_timestamp=2
+MLAT_latitude=3
+MLAT_longitude=4
+ADSB_timestamp=5
+ADSB_latitude=6
+ADSB_longitude=7
+Error=8
+Station_0=9
+Station_1=10
+TDOA1=11
+TDOA1_ADSB=12
+TDOA1_error=13
+Station_2=14
+TDOA2=15
+TDOA2_ADSB=16
+TDOA2_error=17
 Name = 0
 
 c = 299792458/ 1.0003#m/s
@@ -125,20 +130,48 @@ def compute_position_old_error(ADSB_lat,ADSB_long,alt,MLAT_lat,MLAT_long):
 
 data = []
 
-df = pd.DataFrame(data, columns = ['Name','Altitude', 'MLAT_latitude','MLAT_longitude','ADSB_latitude','ADSB_longitude',
+
+
+df = pd.DataFrame(data, columns = ['Name','Altitude','MLAT_timestamp', 'MLAT_latitude','MLAT_longitude',
+                                   'ADSB_timestamp','ADSB_latitude','ADSB_longitude',
                                    'Error','Station_0','Station_1','TDOA1','TDOA1_ADSB','TDOA1_error','Station_2','TDOA2',
                                    'TDOA2_ADSB','TDOA2_error'])
 i=0
 helper = []
+plane_name=''
+flag=True
+start=6
+qwe=-1
 with open('output_clean.txt') as f:
     for line in f:
+        # 27360 ciężki
+        # 27368 lekki
+        # 11056 zakręt
+        # 64 Błąd w połowie
+        # 5456 Dbore
+        # 10472 Badziew
+        # 18464 W połowie uciętę
+        # 37928 Przerwa
+        # 42128 Najgorzej
+        if i<64:
+            i = i + 1
+            continue
         if i%8==0:
+            #print(line.split()[1][1:-1])
+
             helper.append(float.fromhex(line.split()[1][1:-1]))
+            if plane_name == '':
+                plane_name = helper[0]
+            else:
+                if helper[0]!=plane_name:
+                    flag=False
             helper.append(float(line.split()[3]))
         elif i%8==1:
+            helper.append(float(line.split()[1][4:-2]))
             helper.append(float(line.split()[2][0:-1]))
             helper.append(float(line.split()[3]))
         elif i%8==2:
+            helper.append(float(line.split()[1][4:-2]))
             helper.append(float(line.split()[2][0:-1]))
             helper.append(float(line.split()[3]))
         elif i % 8 == 3:
@@ -155,13 +188,16 @@ with open('output_clean.txt') as f:
             #for i in range(len(helper)):
             #    if helper[i][-2::] == '\n':
             #        helper[i] = helper[0:-2]
-            df.loc[i//8] = helper
+            if flag:
+                df.loc[i//8] = helper
             helper=[]
+            flag=True
+
 
 
         i = i+1
-        if i==(8*100):
-            break
+        #if i==(8*5000):
+        #    break
 row = df.to_numpy()
 errors_positions=[]
 errors_ranges=[]
@@ -211,7 +247,86 @@ for index in range(len(df)):
     #errors_ranges.append(compute_ranges_error(row['TDOA1_error']+row['TDOA2_error']))
     #print(1)
 '''
+print(len(row))
+
+
+
+if start==4:
+    A = np.array([[1,0,-1,0],[0,1,0,-1],[0,0,1,0],[0,0,0,1]],dtype=float)
+    C = np.array([[1,0,0,0],[0,1,0,0]],dtype=float)
+    observation = np.array([row[0][MLAT_latitude],row[0][MLAT_longitude],row[1][MLAT_latitude],row[1][MLAT_longitude],
+                            row[2][MLAT_latitude],row[2][MLAT_longitude],row[3][MLAT_latitude],row[3][MLAT_longitude]])
+    timestamps = [0,(row[1][Mlat_timestamp]-row[0][Mlat_timestamp])/10**9,(row[2][Mlat_timestamp]-row[1][Mlat_timestamp])/10**9,
+                  (row[3][Mlat_timestamp]-row[2][Mlat_timestamp])/10**9]
+    plane_state = StateEstimation(A,C,observation,timestamps)
+
+elif start==2:
+    A = np.array([[1, 0, -1, 0], [0, 1, 0, -1], [0, 0, 1, 0], [0, 0, 0, 1]], dtype=float)
+    C = np.array([[1, 0, 0, 0], [0, 1, 0, 0]], dtype=float)
+    observation = np.array(
+        [[row[0][MLAT_latitude], row[0][MLAT_longitude]], [row[1][MLAT_latitude], row[1][MLAT_longitude]]])
+    t_step = (row[1][Mlat_timestamp]-row[0][Mlat_timestamp])/10**9
+    base_staion = check_positions_of_stations([row[1][Station_0]])
+    anchors, _,_ = check_station([row[1][Station_0], row[1][Station_1], row[1][Station_2]])
+    plane_state = KalmanMLAT(A,C,observation,t_step,50/(10**(9))*c,anchors,row[0][Altitude],base_staion[0])
+elif start==3:
+
+    A = np.array([[1,0,-1,0,0,0],[0,1,0,-1,0,0],[0,0,1,0,-1,0],[0,0,0,1,0,-1],[0,0,0,0,1,0],[0,0,0,0,0,1]],dtype=float)
+    C = np.array([[1,0,0,0,0,0],[0,1,0,0,0,0]],dtype=float)
+    observation = np.array(
+        [[row[0][MLAT_latitude], row[0][MLAT_longitude]], [row[1][MLAT_latitude], row[1][MLAT_longitude]],
+         [row[2][MLAT_latitude], row[2][MLAT_longitude]]])
+    t_step = [(row[1][Mlat_timestamp]-row[0][Mlat_timestamp])/10**9,(row[2][Mlat_timestamp]-row[1][Mlat_timestamp])/10**9]
+    base_staion = check_positions_of_stations([row[1][Station_0]])
+    anchors, _,_ = check_station([row[1][Station_0], row[1][Station_1], row[1][Station_2]])
+    plane_state = KalmanMLAT(A,C,observation,t_step,50/(10**(9))*c,anchors,row[0][Altitude],base_staion[0])
+elif start==1:
+    plane_state = Cloud(500, [row[0][MLAT_latitude], row[0][MLAT_longitude], row[0][Altitude], 0, 0, 0, 0, 0, 0], np.array([0.1, 0.1, 0.1, 0.00001, 0.00001, 0.00001, 0.0000001, 0.0000001, 0.0000001]))
+else:
+    A = np.array([[1,0,-1,0,0,0],[0,1,0,-1,0,0],[0,0,1,0,-1,0],[0,0,0,1,0,-1],[0,0,0,0,1,0],[0,0,0,0,0,1]],dtype=float)
+    C = np.array([[1,0,0,0,0,0],[0,1,0,0,0,0]],dtype=float)
+    observation = np.array([row[0][MLAT_latitude],row[0][MLAT_longitude],row[1][MLAT_latitude],row[1][MLAT_longitude],
+                            row[2][MLAT_latitude],row[2][MLAT_longitude],row[3][MLAT_latitude],row[3][MLAT_longitude],
+                            row[4][MLAT_latitude],row[4][MLAT_longitude],row[5][MLAT_latitude],row[5][MLAT_longitude]])
+    timestamps = [0,(row[1][Mlat_timestamp]-row[0][Mlat_timestamp])/10**9,(row[2][Mlat_timestamp]-row[1][Mlat_timestamp])/10**9,
+                  (row[3][Mlat_timestamp]-row[2][Mlat_timestamp])/10**9,(row[4][Mlat_timestamp]-row[3][Mlat_timestamp])/10**9,
+                  (row[5][Mlat_timestamp]-row[4][Mlat_timestamp])/10**9]
+    plane_state = StateEstimation(A,C,observation,timestamps)
+long_estimated=[]
+lan_estimated=[]
+errors_tracking_prediction=[]
+for  i in range(start,len(row)):
+    if start==4 or start==6:
+        errors_tracking_prediction.append(
+            plane_state.update([row[i][MLAT_latitude],row[i][MLAT_longitude]],
+                               (row[i][Mlat_timestamp]-row[i-1][Mlat_timestamp])/10**9))
+    elif start==1:
+        plane_state.get_new_msg([row[i][MLAT_latitude], row[i][MLAT_longitude],row[i][Altitude]],
+                           (row[i][Mlat_timestamp] - row[i - 1][Mlat_timestamp]) / 10 ** 9)
+    else:
+        anchors, _, _ = check_station([row[i][Station_0], row[i][Station_1], row[i][Station_2]])
+        base_staion = check_positions_of_stations([row[i][Station_0]])
+        plane_state.update([row[i][MLAT_latitude], row[i][MLAT_longitude]],
+                           (row[i][Mlat_timestamp] - row[i - 1][Mlat_timestamp]) / 10 ** 9,anchors,row[i][Altitude],
+                           base_staion[0])
+    lan_estimated.append(plane_state.state[0])
+    long_estimated.append(plane_state.state[1])
+    if i%10==qwe:
+        plt.plot(row[0:i, ADSB_latitude], row[0:i, ADSB_longitude])
+        plt.plot(row[0:i, MLAT_latitude], row[0:i, MLAT_longitude], 'x')
+        plt.plot(lan_estimated,long_estimated)
+        print(np.linalg.norm(pm.geodetic2enu(row[i, ADSB_latitude],row[i, ADSB_longitude],
+                                             row[i, Altitude],row[i, MLAT_latitude],row[i, MLAT_longitude],row[i, Altitude])))
+        plt.show()
+plt.plot(errors_tracking_prediction)
+plt.show()
+plt.plot(row[0:i, ADSB_latitude], row[0:i, ADSB_longitude],label='ADSB data')
+plt.plot(row[0:i, MLAT_latitude], row[0:i, MLAT_longitude], 'x',label='Multilateration data')
+plt.plot(lan_estimated, long_estimated,label='UFIR estimation')
+plt.legend()
+plt.show()
 #mean_time_needed=0
+'''
 for index in range(len(df)):
     if index in avoided_index:
         continue
@@ -237,6 +352,7 @@ for index in range(len(df)):
                              [row[index][Station_0], row[index][Station_1], row[index][Station_2]], ranges))
 
     times2.append(mean_time_needed)
+
 print('time needed')
 print(mean_time_needed)
 #errors=[]
@@ -262,3 +378,4 @@ plt.plot(indexes[0:len(times2)],times2)
 plt.show()
 # 1.092956228277192
 # 0.9972731789855185
+'''

@@ -64,7 +64,7 @@ class MLAT:
         return result
 
     @staticmethod
-    def mlat(anchors_in, ranges_in, bounds_in=((0, 0, 0),),
+    def mlat(anchors_in, ranges_in, bounds_in=((0, 0, 0),), starting_location = None,
              n_trial=100, alpha=0.001, time_threshold=None,method = 'gdescent',height=None,base_station=None):
         if method == 'gdescent':
             ret = MLAT.gdescent(anchors_in, ranges_in, bounds_in,
@@ -100,7 +100,7 @@ class MLAT:
             except:
                 return None,None
         elif method == 'taylor2.5D_sphere':
-            ret = MLAT.taylor2_5D_sphere(anchors_in, ranges_in, height,bounds_in,base_station)
+            ret = MLAT.taylor2_5D_sphere(anchors_in, ranges_in, height,bounds_in,base_station,starting_location=starting_location)
             try:
                 idx = np.nanargmin(ret['error'])
                 estimator = ret['estimator'][idx]
@@ -170,16 +170,16 @@ class MLAT:
     #-----------------------------------------------------
     @staticmethod
     def taylor2_5D_sphere(anchors_in, ranges_in, height, bounds_in=((0, 0, 0),), base_station=None, # TO DO Metoda wymaga znajomość varinacji
-                   n_trial=5, time_threshold=None):
+                   n_trial=5, starting_location = None, time_threshold=None):
         anchors = np.array(anchors_in, dtype=float)
         n, dim = anchors.shape
-        bounds_temp = anchors
-        if bounds_in is not None:
-            bounds_temp = np.append(bounds_temp, bounds_in, axis=0)
-        bounds = np.empty((2, dim))
-        for i in range(dim):
-            bounds[0, i] = np.min(bounds_temp[:, i])
-            bounds[1, i] = np.max(bounds_temp[:, i])
+        #bounds_temp = anchors
+        #if bounds_in is not None:
+        #    bounds_temp = np.append(bounds_temp, bounds_in, axis=0)
+        #bounds = np.empty((2, dim))
+        #for i in range(dim):
+        #    bounds[0, i] = np.min(bounds_temp[:, i])
+        #    bounds[1, i] = np.max(bounds_temp[:, i])
 
         #if time_threshold is None:
         #    time_threshold = 1.0 / n_trial
@@ -187,11 +187,11 @@ class MLAT:
         #ranges = np.empty(n)
         result = pd.DataFrame(columns=['estimator', 'error','iterations'],
                               index=np.arange(n_trial))
-        for i in range(n_trial):
-            reference = np.empty(dim)
-            for j in range(dim - 1):
-                reference[j] = np.random.uniform(bounds[0, j], bounds[1, j])
-            reference[-1] = height
+        for i in range(1):
+            #reference = np.empty(dim)
+            #for j in range(dim - 1):
+            #    reference[j] = np.random.uniform(bounds[0, j], bounds[1, j])
+            reference = np.array([starting_location[0],starting_location[1],height])
             tresh = (10**(3))
             for iter in range(50000):
                 A = MLAT.compute_jacobian2_5D(anchors, reference)
@@ -217,7 +217,7 @@ class MLAT:
                     result['estimator'][i] = reference
                     result['error'][i] = np.linalg.norm(errors)
                     result['iterations'][i] = iter
-                    if result['error'][i]<tresh or (iter>9) :
+                    if result['error'][i]<tresh or (iter>15) :
                         return result
 
                     break
@@ -354,6 +354,8 @@ class MLAT:
     @staticmethod
     def compute_jacobian2_5D(anchors,position):
         jacobian=np.zeros([len(anchors)-1,2])
+        #print(position)
+        #print(anchors)
         dist_to_refernce = np.linalg.norm(position-anchors[-1])
         refence_derievative = (position[0:2]-anchors[-1][0:2])/dist_to_refernce
         for i in range(len(anchors)-1):
@@ -414,7 +416,7 @@ class MLAT:
             position1 = 0.5 * np.dot(np.linalg.inv(M), (T - 2 * Rs * D))+anchors_in[3]
             Rs = (-b - np.sqrt(Delta)) / (2 * a)
             position2 = 0.5 * np.dot(np.linalg.inv(M), (T - 2 * Rs * D))+anchors_in[3]
-            if abs(np.linalg.norm(position1[2]-height[2]))>abs(np.linalg.norm(position2[2]-height[2])):
+            if abs(np.linalg.norm(position1[2]-height))>abs(np.linalg.norm(position2[2]-height)):
                 #print('------------------------')
                 #print(height)
                 #print([position1,position2])

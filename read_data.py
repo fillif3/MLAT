@@ -140,7 +140,7 @@ i=0
 helper = []
 plane_name=''
 flag=True
-start=6
+start=20
 qwe=-1
 with open('output_clean.txt') as f:
     for line in f:
@@ -153,7 +153,7 @@ with open('output_clean.txt') as f:
         # 18464 W połowie uciętę
         # 37928 Przerwa
         # 42128 Najgorzej
-        if i<64:
+        if i<27360:
             i = i + 1
             continue
         if i%8==0:
@@ -282,6 +282,19 @@ elif start==3:
     plane_state = KalmanMLAT(A,C,observation,t_step,50/(10**(9))*c,anchors,row[0][Altitude],base_staion[0])
 elif start==1:
     plane_state = Cloud(500, [row[0][MLAT_latitude], row[0][MLAT_longitude], row[0][Altitude], 0, 0, 0, 0, 0, 0], np.array([0.1, 0.1, 0.1, 0.00001, 0.00001, 0.00001, 0.0000001, 0.0000001, 0.0000001]))
+elif start==20:
+    A = np.array([[1,0,-1,0,0,0],[0,1,0,-1,0,0],[0,0,1,0,-1,0],[0,0,0,1,0,-1],[0,0,0,0,1,0],[0,0,0,0,0,1]],dtype=float)
+    C = np.array([[1,0,0,0,0,0],[0,1,0,0,0,0]],dtype=float)
+    observation =[]
+    for i in range(20):
+        observation.append(row[i][MLAT_latitude])
+        observation.append(row[i][MLAT_longitude])
+
+    timestamps = [0]
+    for i in range(19):
+        timestamps.append((row[i+1][Mlat_timestamp]-row[i][Mlat_timestamp])/10**9)
+
+    plane_state = StateEstimation(A,C,observation,timestamps)
 else:
     A = np.array([[1,0,-1,0,0,0],[0,1,0,-1,0,0],[0,0,1,0,-1,0],[0,0,0,1,0,-1],[0,0,0,0,1,0],[0,0,0,0,0,1]],dtype=float)
     C = np.array([[1,0,0,0,0,0],[0,1,0,0,0,0]],dtype=float)
@@ -296,10 +309,15 @@ long_estimated=[]
 lan_estimated=[]
 errors_tracking_prediction=[]
 for  i in range(start,len(row)):
-    if start==4 or start==6:
-        errors_tracking_prediction.append(
-            plane_state.update([row[i][MLAT_latitude],row[i][MLAT_longitude]],
-                               (row[i][Mlat_timestamp]-row[i-1][Mlat_timestamp])/10**9))
+    if start==4 or start==6or start >6:
+        #errors_tracking_prediction.append(
+        #print(
+        #    plane_state.update([row[i][MLAT_latitude],row[i][MLAT_longitude]],
+        #                       (row[i][Mlat_timestamp]-row[i-1][Mlat_timestamp])/10**9,row[i][Altitude]))
+        error = plane_state.update_excluding_outliers([row[i][MLAT_latitude],row[i][MLAT_longitude]],
+                               (row[i][Mlat_timestamp]-row[i-1][Mlat_timestamp])/10**9,row[i][Altitude])#,3400)
+        if error is not None:
+            errors_tracking_prediction.append(error)
     elif start==1:
         plane_state.get_new_msg([row[i][MLAT_latitude], row[i][MLAT_longitude],row[i][Altitude]],
                            (row[i][Mlat_timestamp] - row[i - 1][Mlat_timestamp]) / 10 ** 9)
@@ -311,14 +329,15 @@ for  i in range(start,len(row)):
                            base_staion[0])
     lan_estimated.append(plane_state.state[0])
     long_estimated.append(plane_state.state[1])
-    if i%10==qwe:
+    if i%100==qwe:
         plt.plot(row[0:i, ADSB_latitude], row[0:i, ADSB_longitude])
         plt.plot(row[0:i, MLAT_latitude], row[0:i, MLAT_longitude], 'x')
         plt.plot(lan_estimated,long_estimated)
         print(np.linalg.norm(pm.geodetic2enu(row[i, ADSB_latitude],row[i, ADSB_longitude],
                                              row[i, Altitude],row[i, MLAT_latitude],row[i, MLAT_longitude],row[i, Altitude])))
         plt.show()
-plt.plot(errors_tracking_prediction)
+plt.plot(errors_tracking_prediction,'x')
+#print(errors_tracking_prediction[-1])
 plt.show()
 plt.plot(row[0:i, ADSB_latitude], row[0:i, ADSB_longitude],label='ADSB data')
 plt.plot(row[0:i, MLAT_latitude], row[0:i, MLAT_longitude], 'x',label='Multilateration data')

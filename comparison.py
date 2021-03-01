@@ -42,7 +42,7 @@ MAX_ALT = 50000 * 0.3038
 MLAT_DELAY = 2.5
 
 # maxfev (maximum function evaluations) for the solver
-SOLVER_MAXFEV = 50000
+SOLVER_MAXFEV = 50000000
 
 Cair = 299792458 / 1.0003
 

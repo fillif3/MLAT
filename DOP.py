@@ -94,10 +94,10 @@ max_long = 15.5
 Dops = compute_DOP_MAP(stations,[min_lan,max_lan],[min_long,max_long],altitude=100,base=-1,case='3D')
 
 #for i in range(len(Dops)):
-#    for j in range(len(Dops[0])):
+#    for j in range(len(Dops[0])):37928
 #        if Dops[i,j]>2000:
 #            Dops[i,j]=2000
 print(np.min(Dops))
 print(np.log(Dops))
-ax = sns.heatmap(Dops,vmin=0,vmax=1000)
+ax = sns.heatmap(Dops)
 plt.show()

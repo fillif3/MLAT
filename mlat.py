@@ -3,7 +3,8 @@ import pandas as pd
 from time import time
 from copy import deepcopy
 import pymap3d as pm
-
+from ctypes import *
+import os
 class MLAT:
     @staticmethod
     def __d(p1, p2):
@@ -108,6 +109,39 @@ class MLAT:
                 return estimator, ret
             except:
                 return None,None
+        elif method == 'taylor2.5D_sphere_dll':
+            dir_path = os.path.dirname(os.path.realpath(__file__))+'\\foy.dll'
+            #print(os.listdir(dir_path))
+            mydll = cdll.LoadLibrary(dir_path)
+            function = mydll.foy
+            test_function = mydll.test
+            east =c_float()
+            north = c_float()
+            up=c_float()
+            iterations =c_int()
+            ranges_helper = ranges_in.tolist()
+            anchors_helper = anchors_in.tolist()
+            anchors_helper =[j for sub in anchors_helper for j in sub]
+            anchors_in = (c_float * len(anchors_helper))(*anchors_helper)
+            ranges_in = (c_float * len(ranges_helper))(*ranges_helper)
+            #test = test_function(c_int(3),c_int(5))
+            #print(east)
+            #function.restype = None
+            try:
+                function(anchors_in,c_int(len(ranges_in)),ranges_in,c_float(height),c_float(base_station[0]),
+                         c_float(base_station[1]),c_float(base_station[2]),c_float(starting_location[0]),
+                         c_float(starting_location[1]), c_float(starting_location[2]),
+                         byref(east),byref(north),byref(up),byref(iterations))
+            except:
+                pass
+            #print(east)
+            #void foy(float anchors_list[], int number_of_anchors, float ranges_list[], const float height,
+            #const float lat_reference, const float long_reference, const float alt_reference,
+            #const float starting_east, const float starting_north, const float starting_up,
+            #float * lat_position, float * long_position, float * alt_position, int * iterations);
+            #ret = MLAT.taylor2_5D_sphere(anchors_in, ranges_in, height,bounds_in,base_station,starting_location=starting_location)
+            return (east.value,north.value,up.value),None
+
         else:
             print('wrong method')
             return None,None

@@ -26,7 +26,7 @@ import math
 import scipy.optimize
 
 import geodesy
-import constants
+#import constants
 MIN_NUC = 6
 
 # absolute maximum receiver range for sync messages, metres

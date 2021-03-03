@@ -64,7 +64,7 @@ def check_station(position):
     position_xyz2 = np.zeros([len(position),3])
     position=np.array(position)
     for i in range(len(position)):
-        position_xyz2[i,:] = pm.geodetic2enu(position[i,0],position[i,1],position[i,2],position[0,0],position[0,1],position[0,2])
+        position_xyz2[i,:] = pm.geodetic2enu(position[i,0],position[i,1],position[i,2],position[0,0],position[0,1],0)
     bounds = np.array([[np.min(position_xyz2[:,0]),np.min(position_xyz2[:,1]),np.min(position_xyz2[:,2])],[np.max(position_xyz2[:,0]),np.max(position_xyz2[:,1]),np.max(position_xyz2[:,2])]])
 
     return position_xyz2,bounds,position[0,:]
@@ -111,20 +111,27 @@ timeGithub=[0]
 for i in range(1000):
     plane=plane_step(plane)
 
+
     x.append(plane['position'][0])
     y.append(plane['position'][1])
-    ranges = compute_ranges(stations, plane['position'], VARIANCE)
+    #plane['position'] = [53.4,14.7,1000]
+    #stations = [[53.39624, 14.62899, 2.3], [53.47089, 14.43529, 18.3], [53.52404, 14.94064, 44.7]]
+    #starting_position_for_loop = [100,100,100]
+    ranges = compute_ranges(stations, plane['position'], time_variance= 0)
 
     starting_position_for_loop_github = pm.enu2geodetic(starting_position_for_loop[0], starting_position_for_loop[1], starting_position_for_loop[2], stations[0][0], stations[0][1],
                                            stations[0][2])
     starting_position_for_loop_github = pm.geodetic2ecef(starting_position_for_loop_github[0],starting_position_for_loop_github[1],starting_position_for_loop_github[2])
     # FOY
+    #testing
 
 
     anchors,_,base= check_station(stations)
     t = time.time()
+    # testing
+
     estimator, _ = MLAT.mlat(anchors, ranges, height=plane['position'][2], starting_location = starting_position_for_loop,
-                                    method='taylor2.5D_sphere', base_station=base)
+                                    method='taylor2.5D_sphere_dll', base_station=base)
     timeFoy.append(timeFoy[-1]+time.time()-t)
     estimator_earth_axis = pm.enu2geodetic(estimator[0],estimator[1],estimator[2],stations[0][0],stations[0][1],stations[0][2])
     measurments_x.append(estimator_earth_axis[0])
@@ -197,6 +204,7 @@ print(x)
 print(y)
 plt.legend()
 plt.show()
-plt.plot(timeGithub)
-plt.plot(timeFoy)
+plt.plot(timeGithub,label='SciPy method')
+plt.plot(timeFoy,label='Foy')
+plt.legend()
 plt.show()

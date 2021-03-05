@@ -118,23 +118,23 @@ def bezier_gradient(colors, n_out=100):
     # Return all points requested for gradient
     return color_dict(gradient)
 
+if __name__ == "__main__":
+    #color_dict = linear_gradient("#FFC300","#581845")
+    #color_dict=polylinear_gradient(("#07467A","#6D027C","#A0B800","#BD6D00","#07467A"), 500)
+    a = linear_gradient("#0000FF","#FF0000",n=200)
+    print(a['hex'])
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    i=0
+    for color in a['hex']:
 
-#color_dict = linear_gradient("#FFC300","#581845")
-#color_dict=polylinear_gradient(("#07467A","#6D027C","#A0B800","#BD6D00","#07467A"), 500)
-a = linear_gradient("#0000FF","#FF0000",n=100)
-print(a['hex'])
-fig = plt.figure()
-ax = fig.add_subplot(111)
-i=0
-for color in a['hex']:
+        ax.plot(
+                  [i], [i],
+                  marker = 'o',
+                  linestyle = 'None',
+                  markerfacecolor=color,
+                  markeredgecolor=color,
+                  label='My Blue values')
+        i=i+1
 
-    ax.plot(
-              [i], [i],
-              marker = 'o',
-              linestyle = 'None',
-              markerfacecolor=color,
-              markeredgecolor=color,
-              label='My Blue values')
-    i=i+1
-
-plt.show()
+    plt.show()

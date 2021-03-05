@@ -1,0 +1,79 @@
+#myPanel {
+  position:fixed;
+  width:20%;
+  min-width:200px;
+  height:100%;
+  background-color: white;
+  z-index: 100;
+}
+
+#myMap {
+position:relative;
+
+}
+
+#calculateButton{
+  position: absolute;
+  width: 100%;
+  bottom: 0;
+}
+
+#popUp{
+  position: absolute;
+  display: none;
+  min-width: 100px; /* Need a specific value to work */
+  background-color: white;
+  min-height: 100px;
+  left: 50%;
+  top: 40%;
+  transform: translate(-50%, -50%);
+
+}
+
+.fullWidthButton {
+  display: block;
+  width: 100%;
+  border: none;
+  background-color: #4CAF50;
+  padding: 14px 28px;
+  font-size: 16px;
+  cursor: pointer;
+  text-align: center;
+}
+
+.halfWidthButton {
+  float: left;
+  display: block;
+  width: 45%;
+  border: none;
+  background-color: #4CAF50;
+  padding: 14px 28px;
+  margin: 2px;
+  font-size: 16px;
+  cursor: pointer;
+  text-align: center;
+}
+
+.halfWidthDivLeft {
+  width: 45%;
+  float: left;
+}
+
+.DivLeft {
+  float: left;
+}
+.DivRight {
+  float: right;
+}
+
+.bigCenteredText{
+  font-size: large;
+  text-align: center;
+}
+
+table{
+  text-align: center;
+  border: 3px solid black;
+  width: 100%;
+
+}

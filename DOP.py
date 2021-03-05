@@ -34,7 +34,7 @@ def compute_DOP_MAP(anchors,lan_border,long_border,altitude=1000,lan_step=0.01,l
                 position = np.array(pm.geodetic2enu(lan_current, long_current, altitude,lan_current, long_current ,
                                     altitude))
                 DOP = compute_DOP_2D(anchors_xyz, position, base=base)
-                if DOP<200:
+                if DOP<200000:
                     x_plot_input.append(lan_current)
                     y_plot_input.append(long_current)
                     z_plot_input.append(DOP)
@@ -49,17 +49,17 @@ def compute_DOP_MAP(anchors,lan_border,long_border,altitude=1000,lan_step=0.01,l
         i+=1
         j=0
         long_current=long_border[0]
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-    ax.scatter(x_plot_input, y_plot_input, z_plot_input,label='error')
-    i=2
-    for arr in anchors:
-        ax.scatter(arr[0], arr[1], 40, label=str(i))
-        i+=1
+    #fig = plt.figure()
+    #ax = fig.add_subplot(111, projection='3d')
+    #ax.scatter(x_plot_input, y_plot_input, z_plot_input,label='error')
+    #i=2
+    #for arr in anchors:
+    #    ax.scatter(arr[0], arr[1], 40, label=str(i))
+    #    i+=1
 
-    plt.legend()
-    plt.show()
-    return DOPs
+    #plt.legend()
+    #plt.show()
+    return DOPs,x_plot_input,y_plot_input,z_plot_input
 
 def compute_DOP(anchors,position,base=-1):
     if base!=-1:

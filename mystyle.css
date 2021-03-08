@@ -1,6 +1,6 @@
 #myPanel {
   position:fixed;
-  width:20%;
+  width:40%;
   min-width:200px;
   height:100%;
   background-color: white;
@@ -8,7 +8,7 @@
 }
 
 #myMap {
-position:relative;
+  position:relative;
 
 }
 

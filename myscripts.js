@@ -7,6 +7,122 @@ var mapModule = (function() {
     var _handlers = new Map();
     var _stationArray =[];
     var _vertexArray=[];
+    var _vertexPolygon = null;
+    var _VDOPPixels = []
+
+    function calculateVDOP(latitudePrecision,longitudePrecision,altitude,base_station){
+        _clearVDOP();
+        //if (_stationArray.length<3) return null;
+        if (_vertexArray.length<3) return null;
+        var edges = _getPolygonEdgeValues();
+        var currentLatitude= edges.get('min_latitude');
+        while (currentLatitude<edges.get('max_latitude')){
+            var currentLongitude= edges.get('min_longitude');
+            while (currentLongitude<edges.get('max_longitude')){
+                var locationArray = _getPixelLocationArray(currentLatitude,currentLongitude,latitudePrecision,longitudePrecision);
+
+                if (_checkIfPointInsidePolygon(currentLatitude,currentLongitude,locationArray)){
+
+                    var pixel = new Microsoft.Maps.Polygon(locationArray,{strokeThickness:0});
+                    _MAP_REFERENCE.entities.push(pixel);
+                    _VDOPPixels.push(pixel);
+                }
+                currentLongitude+=longitudePrecision;
+            }
+            currentLatitude+=latitudePrecision;
+        }
+    }
+
+    function _clearVDOP(){
+
+        for (var i=0;i<_VDOPPixels.length;++i){
+            _MAP_REFERENCE.entities.remove(_VDOPPixels[i]);
+        }
+        _VDOPPixels=[];
+    }
+
+    function _getPixelLocationArray(latitude,longitude,latitudePrecision,longitudePrecision){
+        var locationsArray=[]
+        var loc = new Microsoft.Maps.Location(latitude-0.5*latitudePrecision,longitude-0.5*longitudePrecision);
+        locationsArray.push(loc);
+        loc = new Microsoft.Maps.Location(latitude+0.5*latitudePrecision,longitude-0.5*longitudePrecision);
+        locationsArray.push(loc);
+        loc = new Microsoft.Maps.Location(latitude+0.5*latitudePrecision,longitude+0.5*longitudePrecision);
+        locationsArray.push(loc);
+        loc = new Microsoft.Maps.Location(latitude-0.5*latitudePrecision,longitude+0.5*longitudePrecision);
+        locationsArray.push(loc);
+
+        //console.log(locationsArray);
+        return locationsArray;
+    }
+
+    function _checkIfPointInsidePolygon(latitude,longitude){
+        var locationArray = _vertexPolygon.getLocations();
+        //console.log(locationArray);
+        var numberOfIntersections=0;
+        for (var i=1;i<locationArray.length;++i){
+            var maxY = Math.max(locationArray[i-1].longitude,locationArray[i].longitude)
+            var minY = Math.min(locationArray[i-1].longitude,locationArray[i].longitude)
+            if ((longitude>minY)&&(longitude<maxY)){
+                //console.log('---------');
+                //console.log(longitude);
+                //console.log(locationArray[i-1].longitude);
+                //console.log(locationArray[i].longitude);
+                var firstPartOfLine = Math.abs(locationArray[i-1].longitude-longitude)
+                var secondPartOfLine = Math.abs(locationArray[i].longitude-longitude)
+                var division = firstPartOfLine/(firstPartOfLine+secondPartOfLine);
+                var xPoint = locationArray[i-1].latitude+division*(locationArray[i].latitude- locationArray[i-1].latitude);
+                if (xPoint<latitude) numberOfIntersections++;
+            }
+        }
+        if (numberOfIntersections>0) {
+            //console.log(numberOfIntersections);
+            //console.log(numberOfIntersections % 2 == 1)
+        }
+        return numberOfIntersections%2==1;
+    }
+
+    function _getPolygonEdgeValues(){
+        if (_vertexPolygon == null) return null;
+
+        var locations = _vertexPolygon.getLocations();
+
+        //await sleep(2000);
+        var edges = new Map();
+        edges.set('min_latitude',locations[0].latitude);
+        edges.set('max_latitude',locations[0].latitude);
+        edges.set('min_longitude',locations[0].longitude);
+        edges.set('max_longitude',locations[0].longitude);
+        for (i=1;i<(locations.length-1);++i){
+            if (edges.get('min_latitude')>locations[i].latitude) edges.set('min_latitude',locations[i].latitude);
+            if (edges.get('max_latitude')<locations[i].latitude) edges.set('max_latitude',locations[i].latitude);
+            if (edges.get('min_longitude')>locations[i].longitude) edges.set('min_longitude',locations[i].longitude);
+            if (edges.get('max_longitude')<locations[i].longitude) edges.set('max_longitude',locations[i].longitude);
+        }
+        return edges;
+    }
+
+    function _updateVertexPolygon(){
+        if (_vertexPolygon!=null) _MAP_REFERENCE.entities.remove(_vertexPolygon);
+        if (_vertexArray.length>2) {
+            var locationArray = getLocationArrayFromPinArray(_vertexArray);
+            var polygon = new Microsoft.Maps.Polygon(locationArray,{fillColor:'white'});
+            _MAP_REFERENCE.entities.push(polygon);
+            _vertexPolygon = polygon
+        } else _vertexPolygon=null;
+
+    }
+
+    function getLocationArrayFromPinArray(pinArray){
+        var retArr = [];
+        for (i=0;i<pinArray.length;++i)
+        {
+            var pin = pinArray[i];
+            retArr.push(pin.getLocation());
+        }
+        return retArr;
+
+    }
 
     function EditStation(loc,index){
         var newPin = new Microsoft.Maps.Pushpin(loc, {
@@ -17,7 +133,7 @@ var mapModule = (function() {
         var oldPin = _stationArray[index];
         _MAP_REFERENCE.entities.remove(oldPin);
         _stationArray.splice(index,1,newPin);
-        console.log(_stationArray);
+
     }
 
     function addStation(loc){
@@ -45,7 +161,7 @@ var mapModule = (function() {
         var oldPin = _vertexArray[index];
         _MAP_REFERENCE.entities.remove(oldPin);
         _vertexArray.splice(index,1,newPin);
-        console.log(_vertexArray);
+        _updateVertexPolygon();
     }
 
     function addVertex(loc){
@@ -56,12 +172,15 @@ var mapModule = (function() {
         });
         _MAP_REFERENCE.entities.push(pin);
         _vertexArray.push(pin);
+        //console.log(_vertexArray);
+        _updateVertexPolygon();
     }
 
     function deleteVertex(index){
         var pin = _vertexArray[index];
         _vertexArray.splice(index,1)
         _MAP_REFERENCE.entities.remove(pin);
+        _updateVertexPolygon();
     }
 
     function setMap(reference) {
@@ -100,6 +219,7 @@ var mapModule = (function() {
         deleteVertex:deleteVertex,
         addHandler: addHandler,
         deleteHandler:deleteHandler,
+        calculateVDOP:calculateVDOP
     };
 })();
 
@@ -138,6 +258,10 @@ function GetMap()
     return -1;
   };
 }*/
+
+//function calculateVDOP(latitudePrecision,longitudePrecision,altitude,base_station){
+//    mapModule.calculateVDOP(latitudePrecision,longitudePrecision,altitude,base_station);
+//}
 
 function addEventToMap(whichTable){
     //if (typeOfEvent==="Station") Microsoft.Maps.Events.addHandler(mapModule.getMap(), 'click', function (e) { addNewStation(e); });

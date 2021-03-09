@@ -1,332 +1,14 @@
-//MAP_REFERENCE = '';
-
-var mapModule = (function() {
-    'use strict';
-
-
-    const _semimajor_axis = 6378137.0;
-    const _semiminor_axis = 6356752.31424518
-    const _flattening = (_semimajor_axis - _semiminor_axis) / _semimajor_axis;
-    const _thirdflattening = (_semimajor_axis - _semiminor_axis) / (_semimajor_axis + _semiminor_axis);
-    const _eccentricity = Math.sqrt(2 * _flattening - _flattening **2);
-
-    var _MAP_REFERENCE = '';
-    var _handlers = new Map();
-    var _stationArray =[];
-    var _vertexArray=[];
-    var _vertexPolygon = null;
-    var _VDOPPixels = [];
-
-    function _geodetic2ecef(latitude,longitude,alt){
-        if (Math.abs(latitude)>90) return [null,null,null];
-        var latitudeRadians = _degrees_to_radians(latitude);
-        var longitudeRadians = _degrees_to_radians(longitude);
-        // radius of curvature of the prime vertical section
-        var N = _semimajor_axis ** 2 / Math.sqrt(
-            _semimajor_axis ** 2 * Math.cos(latitudeRadians) ** 2 + _semiminor_axis ** 2 * Math.sin(latitudeRadians) ** 2
-        );
-        // Compute cartesian (geocentric) coordinates given  (curvilinear) geodetic
-        // coordinates.
-        var x = (N + alt) * Math.cos(latitudeRadians) * Math.cos(longitudeRadians);
-        var y = (N + alt) * Math.cos(latitudeRadians) * Math.sin(longitudeRadians);
-        var z = (N * (_semiminor_axis / _semimajor_axis) ** 2 + alt) * Math.sin(latitudeRadians)
-        return [x,y,z];
-    }
-
-    function _uvw2enu(u, v, w, lat0, lon0){
-        if (Math.abs(lat0)>90) return [null,null,null];
-        var lat0 = _degrees_to_radians(lat0);
-        var lon0 = _degrees_to_radians(lon0);
-        var t = Math.cos(lon0) * u + Math.sin(lon0) * v;
-        var East = -Math.sin(lon0) * u + Math.cos(lon0) * v;
-        var Up = Math.cos(lat0) * t + Math.sin(lat0) * w
-        var North = -Math.sin(lat0) * t + Math.cos(lat0) * w
-        return [East,North,Up];
-    }
-
-    function _geodetic2enu(lat, lon, h, lat0, lon0, h0){
-        var [x1, y1, z1] = _geodetic2ecef(lat, lon, h);
-        var [x2, y2, z2] = _geodetic2ecef(lat0, lon0, h0);
-        var [east,north,up] = _uvw2enu(x1-x2, y1-y2, z1-z2, lat0, lon0);
-        return [east,north,up];
-    }
-
-    function _degrees_to_radians(degrees)
-    {
-        var pi = Math.PI;
-        return degrees * (pi/180);
-    }
-
-
-    function _computeSingleVDOP(anchors,position,base){
-        if (base!=-1){
-            var helper = anchors[base];
-            anchors[base]=anchors[0];
-            anchors[0]=helper;
-        }
-        var Jacobian=_computeJacobian2dot5D(anchors,position);
-        var Q = _compute_Q(anchors.length-1);
-        try{
-            var transposed_Jacobian = math.transpose(Jacobian);
-            var equation = math.multiply(transposed_Jacobian,Jacobian);//np.dot(tran_J,J)
-            equation=  math.inv(equation);//np.linalg.inv(equation)
-            equation = math.multiply(equation,transposed_Jacobian);//np.dot(equation,tran_J)
-            equation = math.multiply(equation,Q);//np.dot(equation, Q)
-            equation = math.multiply(equation,Jacobian);//np.dot(equation, J)
-            equation = math.multiply(equation,math.inv(math.multiply(transposed_Jacobian,Jacobian)));//np.dot(equation, np.linalg.inv(np.dot(tran_J,J)))
-            return np.sqrt(equation[0][0]+equation[1][1]);
-        }
-        catch (e){
-            return 1;
-        }
-    }
-
-    function _compute_Q(size){
-        var Q = math.add(math.identity(size),math.ones(size,size));
-        return Q;
-    }
-
-    function _computeJacobian2dot5D(anchors,position){
-        var jacobian = math.zeros(anchors.length-1,2);
-        var distToReference = math.norm(math.subtract(position,math.subset(anchors,math.index(0, [0, 1,2]))));
-        //refence_derievative = (position[0:2] - anchors[-1][0:2]) / dist_to_refernce
-        var refence_derievative = math.multiply(math.subtract(math.subset(position,math.index(0, [0, 1])),
-            math.subset(anchors,math.index(0, [0, 1]))),1/distToReference);
-        for (var i=0;i<(anchors.length-1);++i){
-            var distToCurrent = math.norm(math.subtract(position,math.subset(anchors,math.index(i+1, [0, 1,2]))));
-            var gradient = math.multiply(math.subtract(math.subset(position,math.index(0, [0, 1])),
-                math.subset(anchors,math.index(i+1, [0, 1]))),1/distToCurrent);
-            jacobian[i][0]=gradient[0]-refence_derievative;
-            jacobian[i][1]=gradient[1]-refence_derievative;
-
-        }
-        return jacobian;
-    }
-
-    function calculateVDOP(latitudePrecision,longitudePrecision,altitude,base_station){
-        _clearVDOP();
-        //if (_stationArray.length<3) return null;
-        if (_vertexArray.length<3) return null;
-        var edges = _getPolygonEdgeValues();
-        var currentLatitude= edges.get('min_latitude');
-        while (currentLatitude<edges.get('max_latitude')){
-            var currentLongitude= edges.get('min_longitude');
-            while (currentLongitude<edges.get('max_longitude')){
-                var locationArray = _getPixelLocationArray(currentLatitude,currentLongitude,latitudePrecision,longitudePrecision);
-
-                if (_checkIfPointInsidePolygon(currentLatitude,currentLongitude,locationArray)){
-
-                    var pixel = new Microsoft.Maps.Polygon(locationArray,{strokeThickness:0});
-                    _MAP_REFERENCE.entities.push(pixel);
-                    _VDOPPixels.push(pixel);
-                }
-                currentLongitude+=longitudePrecision;
-            }
-            currentLatitude+=latitudePrecision;
-        }
-    }
-
-    function _clearVDOP(){
-
-        for (var i=0;i<_VDOPPixels.length;++i){
-            _MAP_REFERENCE.entities.remove(_VDOPPixels[i]);
-        }
-        _VDOPPixels=[];
-    }
-
-    function _getPixelLocationArray(latitude,longitude,latitudePrecision,longitudePrecision){
-        var locationsArray=[]
-        var loc = new Microsoft.Maps.Location(latitude-0.5*latitudePrecision,longitude-0.5*longitudePrecision);
-        locationsArray.push(loc);
-        loc = new Microsoft.Maps.Location(latitude+0.5*latitudePrecision,longitude-0.5*longitudePrecision);
-        locationsArray.push(loc);
-        loc = new Microsoft.Maps.Location(latitude+0.5*latitudePrecision,longitude+0.5*longitudePrecision);
-        locationsArray.push(loc);
-        loc = new Microsoft.Maps.Location(latitude-0.5*latitudePrecision,longitude+0.5*longitudePrecision);
-        locationsArray.push(loc);
-
-        //console.log(locationsArray);
-        return locationsArray;
-    }
-
-    function _checkIfPointInsidePolygon(latitude,longitude){
-        var locationArray = _vertexPolygon.getLocations();
-        //console.log(locationArray);
-        var numberOfIntersections=0;
-        for (var i=1;i<locationArray.length;++i){
-            var maxY = Math.max(locationArray[i-1].longitude,locationArray[i].longitude)
-            var minY = Math.min(locationArray[i-1].longitude,locationArray[i].longitude)
-            if ((longitude>minY)&&(longitude<maxY)){
-                //console.log('---------');
-                //console.log(longitude);
-                //console.log(locationArray[i-1].longitude);
-                //console.log(locationArray[i].longitude);
-                var firstPartOfLine = Math.abs(locationArray[i-1].longitude-longitude)
-                var secondPartOfLine = Math.abs(locationArray[i].longitude-longitude)
-                var division = firstPartOfLine/(firstPartOfLine+secondPartOfLine);
-                var xPoint = locationArray[i-1].latitude+division*(locationArray[i].latitude- locationArray[i-1].latitude);
-                if (xPoint<latitude) numberOfIntersections++;
-            }
-        }
-        if (numberOfIntersections>0) {
-            //console.log(numberOfIntersections);
-            //console.log(numberOfIntersections % 2 == 1)
-        }
-        return numberOfIntersections%2==1;
-    }
-
-    function _getPolygonEdgeValues(){
-        if (_vertexPolygon == null) return null;
-
-        var locations = _vertexPolygon.getLocations();
-
-        //await sleep(2000);
-        var edges = new Map();
-        edges.set('min_latitude',locations[0].latitude);
-        edges.set('max_latitude',locations[0].latitude);
-        edges.set('min_longitude',locations[0].longitude);
-        edges.set('max_longitude',locations[0].longitude);
-        for (i=1;i<(locations.length-1);++i){
-            if (edges.get('min_latitude')>locations[i].latitude) edges.set('min_latitude',locations[i].latitude);
-            if (edges.get('max_latitude')<locations[i].latitude) edges.set('max_latitude',locations[i].latitude);
-            if (edges.get('min_longitude')>locations[i].longitude) edges.set('min_longitude',locations[i].longitude);
-            if (edges.get('max_longitude')<locations[i].longitude) edges.set('max_longitude',locations[i].longitude);
-        }
-        return edges;
-    }
-
-    function _updateVertexPolygon(){
-        if (_vertexPolygon!=null) _MAP_REFERENCE.entities.remove(_vertexPolygon);
-        if (_vertexArray.length>2) {
-            var locationArray = getLocationArrayFromPinArray(_vertexArray);
-            var polygon = new Microsoft.Maps.Polygon(locationArray,{fillColor:'white'});
-            _MAP_REFERENCE.entities.push(polygon);
-            _vertexPolygon = polygon
-        } else _vertexPolygon=null;
-
-    }
-
-    function getLocationArrayFromPinArray(pinArray){
-        var retArr = [];
-        for (i=0;i<pinArray.length;++i)
-        {
-            var pin = pinArray[i];
-            retArr.push(pin.getLocation());
-        }
-        return retArr;
-
-    }
-
-    function EditStation(loc,index){
-        var newPin = new Microsoft.Maps.Pushpin(loc, {
-            title: 'Station',
-            // subTitle: number.toString()
-        });
-        _MAP_REFERENCE.entities.push(newPin);
-        var oldPin = _stationArray[index];
-        _MAP_REFERENCE.entities.remove(oldPin);
-        _stationArray.splice(index,1,newPin);
-
-    }
-
-    function addStation(loc){
-        //var number = _vertexArray.length+1
-        var pin = new Microsoft.Maps.Pushpin(loc, {
-            title: 'Station',
-           // subTitle: number.toString()
-        });
-        _MAP_REFERENCE.entities.push(pin);
-        _stationArray.push(pin);
-    }
-
-    function deleteStation(index){
-        var pin = _stationArray[index];
-        _stationArray.splice(index,1)
-        _MAP_REFERENCE.entities.remove(pin);
-    }
-
-    function EditVertex(loc,index){
-        var newPin = new Microsoft.Maps.Pushpin(loc, {
-            title: 'Vertex',
-            // subTitle: number.toString()
-        });
-        _MAP_REFERENCE.entities.push(newPin);
-        var oldPin = _vertexArray[index];
-        _MAP_REFERENCE.entities.remove(oldPin);
-        _vertexArray.splice(index,1,newPin);
-        _updateVertexPolygon();
-    }
-
-    function addVertex(loc){
-        //var number = _vertexArray.length+1
-        var pin = new Microsoft.Maps.Pushpin(loc, {
-            title: 'Vertex',
-            // subTitle: number.toString()
-        });
-        _MAP_REFERENCE.entities.push(pin);
-        _vertexArray.push(pin);
-        //console.log(_vertexArray);
-        _updateVertexPolygon();
-    }
-
-    function deleteVertex(index){
-        var pin = _vertexArray[index];
-        _vertexArray.splice(index,1)
-        _MAP_REFERENCE.entities.remove(pin);
-        _updateVertexPolygon();
-    }
-
-    function setMap(reference) {
-        //console.log(reference);
-        _MAP_REFERENCE = reference;
-    }
-
-    function addHandler(typeOfEvent,func) {
-        deleteHandler(typeOfEvent);
-        var referenceToHandler = Microsoft.Maps.Events.addHandler(_MAP_REFERENCE,typeOfEvent, func );
-        //console.log(reference);
-        _handlers.set(typeOfEvent,referenceToHandler);
-    }
-
-    function deleteHandler(typeOfEvent){
-        if (_handlers.get(typeOfEvent)!=null){
-            Microsoft.Maps.Events.removeHandler(_handlers.get(typeOfEvent));
-            _handlers.delete(typeOfEvent);
-        }
-    }
-
-
-    function getMap() {
-        //console.log(reference);
-        return _MAP_REFERENCE;
-    }
-
-    return {
-        addVertex:addVertex,
-        setMap: setMap,
-        getMap: getMap,
-        EditStation:EditStation,
-        EditVertex:EditVertex,
-        addStation:addStation,
-        deleteStation:deleteStation,
-        deleteVertex:deleteVertex,
-        addHandler: addHandler,
-        deleteHandler:deleteHandler,
-        calculateVDOP:calculateVDOP
-    };
-})();
-
 
 function testFunction(test){
-    A=[[1,2],[3,4]];
-    B=[[1,2],[3,4]];
-    result=math.multiply(A,B);
+    var A=[[1,2],[3,4]];
+    var B=[[1,2],[3,4]];
+    var result=math.multiply(A,B);
     console.log(result);
     alert("This is test box!");
 }
 function GetMap()
 {
-    map = new Microsoft.Maps.Map('#myMap')
+    var map = new Microsoft.Maps.Map('#myMap')
 
     mapModule.setMap(map);
 
@@ -378,10 +60,10 @@ function addNewVertex(e){
         var loc = e.target.tryPixelToLocation(point);
 
         //var location = new Microsoft.Maps.Location(loc.latitude, loc.longitude);
-        console.log(loc.latitude.toString().slice(0,7));
+        //console.log(loc.latitude.toString().slice(0,7));
         var lat = loc.latitude.toString().slice(0,7);
         var lon = loc.longitude.toString().slice(0,7);
-        mapModule.deleteHandler('click');
+        //mapModule.deleteHandler('click');
         //var alt = document.getElementById('altInputPopUp').value;
     }
     else {
@@ -435,9 +117,9 @@ function addNewStation(e){
         alt = parseFloat(alt);
 
     }
-    mapModule.addStation(loc)
+    mapModule.addStation(loc,alt)
     var table = document.getElementById("stationTable");
-    newRow = table.rows.length;
+    var newRow = table.rows.length;
     var content = [newRow-1,lat,lon,alt ] ;
     addNewRowToTable("stationTable",newRow,content,
     '<button type="button" onclick=editRowAndUpdateTable(this) class="fullWidthButton">Edit Station clicking</button>',
@@ -451,7 +133,7 @@ function deleteRowAndUpdateTable(cell){
     var table = document.getElementById(tableId);
     //console.log('tutaj')
     //console.log(cell.parentNode.parentNode.parentNode.parentNode)
-    row = cell.parentNode.parentNode
+    var row = cell.parentNode.parentNode
     //console.log(row)
     //console.log(table.rows)
     row.parentNode.removeChild(row);
@@ -483,9 +165,10 @@ function editRowAndUpdateTable(cell){ //To Do
     var index = row.cells[0].innerHTML-1;
     var lat = row.cells[1].innerHTML;
     var lon = row.cells[2].innerHTML;
-    console.log(lat);
+    var alt = row.cells[3].innerHTML;
+    //console.log(lat);
     var loc = new Microsoft.Maps.Location(parseFloat(lat),parseFloat(lon));
-    editPin(loc,index,tableId);
+    editPin(loc,index,tableId,alt);
 
 
     //console.log(row)
@@ -502,8 +185,8 @@ function deletePin(index,tableId){
 
 }
 
-function editPin(loc,index,tableId){
-    if (tableId=="stationTable") mapModule.EditStation(loc,index);
+function editPin(loc,index,tableId,alt){
+    if (tableId=="stationTable") mapModule.EditStation(loc,parseFloat(alt),index);
     if (tableId=="vertexTable") mapModule.EditVertex(loc,index);
 
 }
@@ -513,7 +196,7 @@ function editPin(loc,index,tableId){
 function addNewRowToTable(idOfTable,indexOfRow,content,buttonDescription,buttonDescription2) {
     var table = document.getElementById(idOfTable);
     var row = table.insertRow(indexOfRow);
-    for (i = 0; i < content.length; ++i) {
+    for (var i = 0; i < content.length; ++i) {
       var cell = row.insertCell(i);
       cell.innerHTML = content[i];
       if (i>0) cell.contentEditable = true;

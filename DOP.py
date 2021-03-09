@@ -122,31 +122,31 @@ def compute_Q(size_of_matrix):
     #    Q[i,i]+=1
     return Q
 
+if __name__ == "__main__":
+    stations =[#[53.39624,14.62899,2.3],
+               [53.52379, 14.42902, 18.0],
+               #[53.82379, 14.42902, 32.0],
+               #[53.92379, 14.32902, 55.0],
+               #[53.42379, 14.82902, 1.0],
+               [53.47089, 14.43529, 18.3],
+               [53.52404, 14.94064, 44.7]]
 
-stations =[#[53.39624,14.62899,2.3],
-           [53.52379, 14.42902, 18.0],
-           #[53.82379, 14.42902, 32.0],
-           #[53.92379, 14.32902, 55.0],
-           #[53.42379, 14.82902, 1.0],
-           [53.47089, 14.43529, 18.3],
-           [53.52404, 14.94064, 44.7]]
+    #h = 1000
+    min_lan = 53.3
+    max_lan = 53.6
+    min_long = 14.2
+    max_long = 15.0
+    #lan_step =0.01
+    #long_step=0.01
 
-#h = 1000
-min_lan = 53.3
-max_lan = 53.6
-min_long = 14.2
-max_long = 15.0
-#lan_step =0.01
-#long_step=0.01
+    Dops = compute_DOP_MAP(stations,[min_lan,max_lan],[min_long,max_long],altitude=9000,base=0,case='2D')
 
-Dops = compute_DOP_MAP(stations,[min_lan,max_lan],[min_long,max_long],altitude=9000,base=0,case='2D')
-
-#for i in range(len(Dops)):
-#    for j in range(len(Dops[0])):37928
-#        if Dops[i,j]>2000:
-#            Dops[i,j]=2000
-print(Dops)
-plt.show()
+    #for i in range(len(Dops)):
+    #    for j in range(len(Dops[0])):37928
+    #        if Dops[i,j]>2000:
+    #            Dops[i,j]=2000
+    print(Dops)
+    plt.show()
 '''
 
 anchors = np.array([[0,-6180,50],[0,16180,70],[11756,16180,80],[19021,-6180,110],[0,-20000,25]])

@@ -3,12 +3,105 @@
 var mapModule = (function() {
     'use strict';
 
+
+    const _semimajor_axis = 6378137.0;
+    const _semiminor_axis = 6356752.31424518
+    const _flattening = (_semimajor_axis - _semiminor_axis) / _semimajor_axis;
+    const _thirdflattening = (_semimajor_axis - _semiminor_axis) / (_semimajor_axis + _semiminor_axis);
+    const _eccentricity = Math.sqrt(2 * _flattening - _flattening **2);
+
     var _MAP_REFERENCE = '';
     var _handlers = new Map();
     var _stationArray =[];
     var _vertexArray=[];
     var _vertexPolygon = null;
-    var _VDOPPixels = []
+    var _VDOPPixels = [];
+
+    function _geodetic2ecef(latitude,longitude,alt){
+        if (Math.abs(latitude)>90) return [null,null,null];
+        var latitudeRadians = _degrees_to_radians(latitude);
+        var longitudeRadians = _degrees_to_radians(longitude);
+        // radius of curvature of the prime vertical section
+        var N = _semimajor_axis ** 2 / Math.sqrt(
+            _semimajor_axis ** 2 * Math.cos(latitudeRadians) ** 2 + _semiminor_axis ** 2 * Math.sin(latitudeRadians) ** 2
+        );
+        // Compute cartesian (geocentric) coordinates given  (curvilinear) geodetic
+        // coordinates.
+        var x = (N + alt) * Math.cos(latitudeRadians) * Math.cos(longitudeRadians);
+        var y = (N + alt) * Math.cos(latitudeRadians) * Math.sin(longitudeRadians);
+        var z = (N * (_semiminor_axis / _semimajor_axis) ** 2 + alt) * Math.sin(latitudeRadians)
+        return [x,y,z];
+    }
+
+    function _uvw2enu(u, v, w, lat0, lon0){
+        if (Math.abs(lat0)>90) return [null,null,null];
+        var lat0 = _degrees_to_radians(lat0);
+        var lon0 = _degrees_to_radians(lon0);
+        var t = Math.cos(lon0) * u + Math.sin(lon0) * v;
+        var East = -Math.sin(lon0) * u + Math.cos(lon0) * v;
+        var Up = Math.cos(lat0) * t + Math.sin(lat0) * w
+        var North = -Math.sin(lat0) * t + Math.cos(lat0) * w
+        return [East,North,Up];
+    }
+
+    function _geodetic2enu(lat, lon, h, lat0, lon0, h0){
+        var [x1, y1, z1] = _geodetic2ecef(lat, lon, h);
+        var [x2, y2, z2] = _geodetic2ecef(lat0, lon0, h0);
+        var [east,north,up] = _uvw2enu(x1-x2, y1-y2, z1-z2, lat0, lon0);
+        return [east,north,up];
+    }
+
+    function _degrees_to_radians(degrees)
+    {
+        var pi = Math.PI;
+        return degrees * (pi/180);
+    }
+
+
+    function _computeSingleVDOP(anchors,position,base){
+        if (base!=-1){
+            var helper = anchors[base];
+            anchors[base]=anchors[0];
+            anchors[0]=helper;
+        }
+        var Jacobian=_computeJacobian2dot5D(anchors,position);
+        var Q = _compute_Q(anchors.length-1);
+        try{
+            var transposed_Jacobian = math.transpose(Jacobian);
+            var equation = math.multiply(transposed_Jacobian,Jacobian);//np.dot(tran_J,J)
+            equation=  math.inv(equation);//np.linalg.inv(equation)
+            equation = math.multiply(equation,transposed_Jacobian);//np.dot(equation,tran_J)
+            equation = math.multiply(equation,Q);//np.dot(equation, Q)
+            equation = math.multiply(equation,Jacobian);//np.dot(equation, J)
+            equation = math.multiply(equation,math.inv(math.multiply(transposed_Jacobian,Jacobian)));//np.dot(equation, np.linalg.inv(np.dot(tran_J,J)))
+            return np.sqrt(equation[0][0]+equation[1][1]);
+        }
+        catch (e){
+            return 1;
+        }
+    }
+
+    function _compute_Q(size){
+        var Q = math.add(math.identity(size),math.ones(size,size));
+        return Q;
+    }
+
+    function _computeJacobian2dot5D(anchors,position){
+        var jacobian = math.zeros(anchors.length-1,2);
+        var distToReference = math.norm(math.subtract(position,math.subset(anchors,math.index(0, [0, 1,2]))));
+        //refence_derievative = (position[0:2] - anchors[-1][0:2]) / dist_to_refernce
+        var refence_derievative = math.multiply(math.subtract(math.subset(position,math.index(0, [0, 1])),
+            math.subset(anchors,math.index(0, [0, 1]))),1/distToReference);
+        for (var i=0;i<(anchors.length-1);++i){
+            var distToCurrent = math.norm(math.subtract(position,math.subset(anchors,math.index(i+1, [0, 1,2]))));
+            var gradient = math.multiply(math.subtract(math.subset(position,math.index(0, [0, 1])),
+                math.subset(anchors,math.index(i+1, [0, 1]))),1/distToCurrent);
+            jacobian[i][0]=gradient[0]-refence_derievative;
+            jacobian[i][1]=gradient[1]-refence_derievative;
+
+        }
+        return jacobian;
+    }
 
     function calculateVDOP(latitudePrecision,longitudePrecision,altitude,base_station){
         _clearVDOP();
@@ -224,6 +317,13 @@ var mapModule = (function() {
 })();
 
 
+function testFunction(test){
+    A=[[1,2],[3,4]];
+    B=[[1,2],[3,4]];
+    result=math.multiply(A,B);
+    console.log(result);
+    alert("This is test box!");
+}
 function GetMap()
 {
     map = new Microsoft.Maps.Map('#myMap')

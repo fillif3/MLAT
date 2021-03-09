@@ -116,10 +116,10 @@ def compute_DOP_2D(anchors,position,base=-1):
     except:
         return 1
 
-def compute_Q(number_of_anchors):
-    Q = np.eye(number_of_anchors)
-    for i in range(number_of_anchors):
-        Q[i,i]+=1
+def compute_Q(size_of_matrix):
+    Q = np.eye(size_of_matrix)+np.ones((size_of_matrix,size_of_matrix))
+    #for i in range(number_of_anchors):
+    #    Q[i,i]+=1
     return Q
 
 

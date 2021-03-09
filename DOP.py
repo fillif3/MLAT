@@ -1,10 +1,11 @@
-import numpy as np
+    import numpy as np
 from mlat import MLAT
 import pymap3d as pm
 import matplotlib.pyplot as plt
 import statistics
 from mpl_toolkits.mplot3d import Axes3D
 import seaborn as sns
+from copy import deepcopy
 def compute_DOP_MAP(anchors,lan_border,long_border,altitude=1000,lan_step=0.01,long_step=0.02,base=-1,case='3D'):
 
     lan_current=lan_border[0]
@@ -62,11 +63,15 @@ def compute_DOP_MAP(anchors,lan_border,long_border,altitude=1000,lan_step=0.01,l
     return DOPs,x_plot_input,y_plot_input,z_plot_input
 
 def compute_DOP(anchors,position,base=-1):
+    print('----------')
+    print(anchors)
     if base!=-1:
-        helper = anchors[base]
+        helper = deepcopy(anchors[base])
         anchors[base]=anchors[-1]
         anchors[-1]=helper
+    print(anchors)
     J=MLAT.compute_jacobian(anchors,position)
+    print(J)
     Q = compute_Q(len(anchors)-1)#np.linalg.inv(np.array([[2,1,1,1],[1,2,1,1],[1,1,2,1],[1,1,1,2]]))
     try:
         '''
@@ -77,13 +82,21 @@ def compute_DOP(anchors,position,base=-1):
         e=np.trace(d)
         return np.sqrt(np.trace(np.linalg.inv(np.linalg.multi_dot([np.transpose(J),J]))))
         '''
+
         tran_J = np.transpose(J)
+        print(tran_J)
         equation = np.dot(tran_J,J)
+        print(equation)
         equation=np.linalg.inv(equation)
+        print(equation)
         equation = np.dot(equation,tran_J)
+        print(equation)
         equation = np.dot(equation, Q)
+        print(equation)
         equation = np.dot(equation, J)
+        print(equation)
         equation = np.dot(equation, np.linalg.inv(np.dot(tran_J,J)))
+        print(equation)
         #equation = np.dot(equation, tran_J)
 
         #equation = np.linalg.multi_dot([equation,tran_J,Q,J,np.linalg.inv(np.dot(tran_J,J))])
@@ -93,22 +106,30 @@ def compute_DOP(anchors,position,base=-1):
 
 def compute_DOP_2D(anchors,position,base=-1):
     if base!=-1:
-        helper = anchors[base]
+        helper = deepcopy(anchors[base])
         anchors[base]=anchors[-1]
         anchors[-1]=helper
     J=MLAT.compute_jacobian2_5D(anchors,position)
+    #print(J)
     Q = compute_Q(len(anchors)-1)
     #print(J)
     #print('1')
     try:
 
         tran_J = np.transpose(J)
+        #print(tran_J)
         equation = np.dot(tran_J,J)
+        #print(equation)
         equation=np.linalg.inv(equation)
+        #print(equation)
         equation = np.dot(equation,tran_J)
+        #print(equation)
         equation = np.dot(equation, Q)
+        #print(equation)
         equation = np.dot(equation, J)
+        #print(equation)
         equation = np.dot(equation, np.linalg.inv(np.dot(tran_J,J)))
+        #print(equation)
         #equation = np.dot(equation, tran_J)
 
         #equation = np.linalg.multi_dot([equation,tran_J,Q,J,np.linalg.inv(np.dot(tran_J,J))])

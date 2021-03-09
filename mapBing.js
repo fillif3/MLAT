@@ -138,18 +138,33 @@ var mapModule = (function() {
         //console.log(Jacobian);
         var Q = _compute_Q(anchors.length-1);
         //console.log(Q,'Q');
+        //try{
+        //console.log(anchors)
+        //console.log(position)
         try{
             var transposed_Jacobian = math.transpose(Jacobian);
+            //console.log(JSON.parse(JSON.stringify(transposed_Jacobian)),'transposed_Jacobian');
             var equation = math.multiply(transposed_Jacobian,Jacobian);//np.dot(tran_J,J)
+            //console.log(JSON.parse(JSON.stringify(equation)),'eq2');
             equation=  math.inv(equation);//np.linalg.inv(equation)
+            //console.log(JSON.parse(JSON.stringify(equation)),'eq3');
             equation = math.multiply(equation,transposed_Jacobian);//np.dot(equation,tran_J)
+            //console.log(JSON.parse(JSON.stringify(equation)),'eq4');
             equation = math.multiply(equation,Q);//np.dot(equation, Q)
+            //console.log(JSON.parse(JSON.stringify(equation)),'eq5');
             equation = math.multiply(equation,Jacobian);//np.dot(equation, J)
+            //console.log(JSON.parse(JSON.stringify(equation)),'eq6');
             equation = math.multiply(equation,math.inv(math.multiply(transposed_Jacobian,Jacobian)));//np.dot(equation, np.linalg.inv(np.dot(tran_J,J)))
-            return np.sqrt(equation[0][0]+equation[1][1]);
+            //console.log(JSON.parse(JSON.stringify(equation)),'eq7');
+            //throw "koniec";
+            //equation = Math.sqrt(equation._data[0][0]+equation._data[1][1]);
+            //console.log(JSON.parse(JSON.stringify(equation)),'eq7');
+            //throw "koniec";
+            return Math.sqrt(equation._data[0][0]+equation._data[1][1]);
         }
+        //}
         catch (e){
-            return 1;
+            return 41;
         }
     }
 
@@ -170,6 +185,7 @@ var mapModule = (function() {
 
     function calculateVDOP(latitudePrecision,longitudePrecision,altitude,base_station){
         _clearVDOP();
+        altitude=1000;
         //if (_stationArray.length<3) return null;
         if (_vertexArray.length<3) return null;
         var edges = _getPolygonEdgeValues();
@@ -182,6 +198,8 @@ var mapModule = (function() {
                 if (_checkIfPointInsidePolygon(currentLatitude,currentLongitude,locationArray)){
                     //console.log('jestem tu');
                     var color = _computeColorBasedOnVDOP(currentLatitude,currentLongitude,altitude,base_station);
+                    //console.log(color);
+                    //throw 'kniec';
                     //console.log('jestem tu2');
                     var pixel = new Microsoft.Maps.Polygon(locationArray,{strokeThickness:0,fillColor:color});
                     _MAP_REFERENCE.entities.push(pixel);
@@ -206,22 +224,30 @@ var mapModule = (function() {
     // Color functions
 
     function _getColor(value){
+        //console.log(value);
         var bins = 15;
-        if (value>(bins*2+1)) return 'black';
+        if (value>(bins*2+1)) {return 'black';}
         var min = "00FF00";
         var half = "0000FF";
         var max = "FF0000";
 
         value= Math.floor(value);
+        //console.log(value);
+
         if (value >bins){
             value-=bins;
             value--;
-            var tmp = generateColor(min,half,bins);
-            return tmp[value];
+
+            var tmp = generateColor(max,half,bins);
+            //console.log(tmp[value]);
+            //throw 'kniec';
+            return '#'+tmp[value];
         } else{
             value--;
-            var tmp = generateColor(half,max,bins);
-            return tmp[value];
+            var tmp = generateColor(half,min,bins);
+            //console.log(tmp[value]);
+            //throw 'kniec';
+            return '#'+tmp[value];
         }
 
 

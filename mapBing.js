@@ -5,8 +5,10 @@ var mapModule = (function() {
     const _semimajor_axis = 6378137.0;
     const _semiminor_axis = 6356752.31424518
     const _flattening = (_semimajor_axis - _semiminor_axis) / _semimajor_axis;
-    const _thirdflattening = (_semimajor_axis - _semiminor_axis) / (_semimajor_axis + _semiminor_axis);
-    const _eccentricity = Math.sqrt(2 * _flattening - _flattening **2);
+    //const _thirdflattening = (_semimajor_axis - _semiminor_axis) / (_semimajor_axis + _semiminor_axis);
+    //const _eccentricity = Math.sqrt(2 * _flattening - _flattening **2);
+    const _meter_per_lat = 111320;
+
 
     var _MAP_REFERENCE = '';
     var _handlers = new Map();
@@ -15,6 +17,10 @@ var mapModule = (function() {
     var _vertexArray=[];
     var _vertexPolygon = null;
     var _VDOPPixels = [];
+    var _VDOPValues = [];
+    var _circleRadius=0;
+    var _circlePin=null;
+    var _circlePolygon=null
 
     // Geometry transformations between coordiates - Start
 
@@ -179,23 +185,31 @@ var mapModule = (function() {
         }
 
         var VDOP = _computeSingleVDOP(anchors,position,base_station);
+        _VDOPValues.push(VDOP);
         return _getColor(VDOP);
 
     }
 
-    function calculateVDOP(latitudePrecision,longitudePrecision,altitude,base_station){
+    function calculateVDOP(lat_res,lon_res,altitude,base_station,isCircle){
         _clearVDOP();
-        altitude=1000;
-        //if (_stationArray.length<3) return null;
-        if (_vertexArray.length<3) return null;
-        var edges = _getPolygonEdgeValues();
+        console.log(altitude);
+
+        if (_stationArray.length<3) return null;
+        if ((_vertexArray.length<3)&&(!isCircle)) return null;
+        if ((_circlePolygon==null)&&(isCircle)) return null;
+        var edges = _getPolygonEdgeValues(isCircle);
+        console.log(edges);
+        var latitudePrecision = (edges.get('max_latitude') - edges.get('min_latitude'))/lat_res;
+        var longitudePrecision = (edges.get('max_longitude') - edges.get('min_longitude'))/lon_res;
         var currentLatitude= edges.get('min_latitude');
+        var n = performance.now();
         while (currentLatitude<edges.get('max_latitude')){
             var currentLongitude= edges.get('min_longitude');
             while (currentLongitude<edges.get('max_longitude')){
                 var locationArray = _getPixelLocationArray(currentLatitude,currentLongitude,latitudePrecision,longitudePrecision);
 
-                if (_checkIfPointInsidePolygon(currentLatitude,currentLongitude,locationArray)){
+                if (_checkIfPointInsidePolygon(currentLatitude,currentLongitude,isCircle)){
+                    //console.log('tutaj');
                     //console.log('jestem tu');
                     var color = _computeColorBasedOnVDOP(currentLatitude,currentLongitude,altitude,base_station);
                     //console.log(color);
@@ -209,7 +223,13 @@ var mapModule = (function() {
             }
             currentLatitude+=latitudePrecision;
         }
-        _vertexPolygon.setOptions({visible:false});
+
+        var n2 = performance.now();
+        console.log(n2-n,'czas');
+        console.log(n,'czas');
+        console.log(n2,'czas');
+        if (_vertexPolygon!=null) _vertexPolygon.setOptions({visible:false});
+        if (_circlePolygon!=null) _circlePolygon.setOptions({visible:false});
     }
 
     function _clearVDOP(){
@@ -218,14 +238,16 @@ var mapModule = (function() {
             _MAP_REFERENCE.entities.remove(_VDOPPixels[i]);
         }
         _VDOPPixels=[];
+        _VDOPValues=[];
     }
 
 
     // Color functions
 
-    function _getColor(value){
+    function _getColor(val){
         //console.log(value);
-        var bins = 15;
+        var value = val*4;
+        var bins = 60;
         if (value>(bins*2+1)) {return 'black';}
         var min = "00FF00";
         var half = "0000FF";
@@ -256,7 +278,14 @@ var mapModule = (function() {
 
     // Polygon functions
 
-    function _checkIfPointInsidePolygon(latitude,longitude){
+    function _checkIfPointInsidePolygon(latitude,longitude,isCircle){
+        if (isCircle){
+            const meter_per_lon = 40075000*Math.cos(3.14*latitude/180)/360;
+            var loc = _circlePin.getLocation();
+            var x = (loc.latitude-latitude)*_meter_per_lat;
+            var y = (loc.longitude-longitude)*meter_per_lon;
+            return _circleRadius>Math.sqrt(x**2+y**2);
+        }
         var locationArray = _vertexPolygon.getLocations();
         //console.log(locationArray);
         var numberOfIntersections=0;
@@ -283,9 +312,21 @@ var mapModule = (function() {
     }
 
 
-    function _getPolygonEdgeValues(){
-        if (_vertexPolygon == null) return null;
+    function _getPolygonEdgeValues(isCircle){
+        if ((_vertexPolygon == null)&&(!isCircle)) return null;
+        if ((_circlePolygon==null)&&(isCircle)) return null;
+        if (isCircle){
+            _circleRadius;
 
+            var loc =_circlePin.getLocation();
+            const meter_per_lon = 40075000*Math.cos(3.14*loc.latitude/180)/360;
+            var edges = new Map();
+            edges.set('min_latitude',loc.latitude -_circleRadius/_meter_per_lat );
+            edges.set('max_latitude',loc.latitude +_circleRadius/_meter_per_lat );
+            edges.set('min_longitude',loc.longitude -_circleRadius/meter_per_lon );
+            edges.set('max_longitude',loc.longitude +_circleRadius/meter_per_lon );
+            return  edges;
+        }
         var locations = _vertexPolygon.getLocations();
 
         //await sleep(2000);
@@ -410,6 +451,50 @@ var mapModule = (function() {
         _updateVertexPolygon();
     }
 
+    // Circle functions
+
+    function _calculateVertexesOfCircle(lat,lon,radius){
+        var angle = 0
+        var vertexes=[]
+        const meter_per_lon = 40075000*Math.cos(3.14*lat/180)/360;
+
+        for (var i=0;i<30;++i){
+            var x = radius*Math.cos(angle)/_meter_per_lat;
+            var y = radius*Math.sin(angle)/meter_per_lon;
+            var loc = new Microsoft.Maps.Location(lat+x,lon+y);
+            vertexes.push(loc);
+            angle+= 6.28/30;
+        }
+        //console.log(vertexes);
+        if (_circlePolygon !=null) _MAP_REFERENCE.entities.remove(_circlePolygon);
+        _circlePolygon = new Microsoft.Maps.Polygon(vertexes,{fillColor:'white',visible:true});
+        _MAP_REFERENCE.entities.push(_circlePolygon);
+    }
+
+
+    function addCircle(loc,radius){
+        //console.log('tutaj');
+        //var number = _vertexArray.length+1
+        var pin = new Microsoft.Maps.Pushpin(loc, {
+            title: 'Cricle',
+            // subTitle: number.toString()
+        });
+        if (_circlePin !=null) _MAP_REFERENCE.entities.remove(_circlePin);
+        _MAP_REFERENCE.entities.push(pin);
+        _circleRadius=radius;
+        _circlePin=pin;
+        _calculateVertexesOfCircle(loc.latitude,loc.longitude,radius);
+        //console.log(_vertexArray);
+        //_updateVertexPolygon();
+    }
+
+    function deleteCircle(){
+        _MAP_REFERENCE.entities.remove(_circlePin);
+        _circlePin = null
+        _MAP_REFERENCE.entities.remove(_circlePolygon);
+        _circlePolygon = null;
+    }
+
     //  Map functions
 
     function setMap(reference) {
@@ -448,6 +533,8 @@ var mapModule = (function() {
         deleteVertex:deleteVertex,
         addHandler: addHandler,
         deleteHandler:deleteHandler,
-        calculateVDOP:calculateVDOP
+        calculateVDOP:calculateVDOP,
+        addCircle:addCircle,
+        deleteCircle:deleteCircle
     };
 })();

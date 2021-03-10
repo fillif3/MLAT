@@ -50,6 +50,7 @@ function addEventToMap(whichTable){
     //if (typeOfEvent==="Vertex") Microsoft.Maps.Events.addHandler(mapModule.getMap(), 'click', function (e) { addNewVertex(e); });
     if (whichTable==="Station") mapModule.addHandler('click', function (e) { addNewStation(e); });
     if (whichTable==="Vertex") mapModule.addHandler('click', function (e) { addNewVertex(e); });
+    if (whichTable==="Circle") mapModule.addHandler('click', function (e) { addNewCircle(e); });
 }
 
 
@@ -89,6 +90,45 @@ function addNewVertex(e){
     '<button type="button" onclick=editRowAndUpdateTable(this) class="fullWidthButton">Edit Vertex clicking</button>',
         '<button type="button" onclick=deleteRowAndUpdateTable(this) class="fullWidthButton">Delete Vertex clicking</button>');
     hideMassageWindow('lat_lon_alt');
+}
+
+function addNewCircle(e){
+    if (e != null) {
+        var point = new Microsoft.Maps.Point(e.getX(), e.getY());
+        var loc = e.target.tryPixelToLocation(point);
+
+        //var location = new Microsoft.Maps.Location(loc.latitude, loc.longitude);
+        //console.log(loc.latitude.toString().slice(0,7));
+        var lat = loc.latitude.toString().slice(0,7);
+        var lon = loc.longitude.toString().slice(0,7);
+        mapModule.deleteHandler('click');
+        //mapModule.deleteHandler('click');
+        //var alt = document.getElementById('altInputPopUp').value;
+    }
+    else {
+        var lat = document.getElementById('latInputPopUp').value;
+        // TO DO: add checking if it is a number
+        lat = parseFloat(lat);
+        var lon = document.getElementById('longInputPopUp').value;
+        // TO DO: add checking if it is a number
+        lon = parseFloat(lon);
+        loc = new Microsoft.Maps.Location(lat,lon);
+        //var alt = document.getElementById('altInputPopUp').value;
+        // TO DO: add checking if it is a number
+        //alt = parseFloat(alt);
+
+    }
+    mapModule.addCircle(loc,2000);
+    var table = document.getElementById("circleOfInterest");
+    var newRow = table.rows.length;
+
+    var content = [lat,lon ,2000] ;
+    //console.log(content);
+    addNewRowToTable("circleOfInterest",newRow,content,
+        '<button type="button" onclick=editRowAndUpdateTable(this) class="fullWidthButton">Edit Vertex clicking</button>',
+        '<button type="button" onclick=deleteRowAndUpdateTable(this) class="fullWidthButton">Delete Vertex clicking</button>');
+    hideMassageWindow('lat_lon_alt');
+    if (newRow>3) table.rows[4].parentNode.removeChild(table.rows[3]);
 }
 
 function addNewStation(e){
@@ -142,7 +182,7 @@ function deleteRowAndUpdateTable(cell){
     //table.deleteRow(indexOfRow)
     var numberOfRows = table.rows.length;
     var flag = true;
-    for (i = 2;i<numberOfRows;++i)
+    for (var i = 2;i<numberOfRows;++i)
     {
         var cell = table.rows[i].cells[0];
         if ((flag) && (cell.innerHTML == (i))){
@@ -162,6 +202,15 @@ function editRowAndUpdateTable(cell){ //To Do
     //console.log('tutaj')
     //console.log(cell.parentNode.parentNode.parentNode.parentNode)
     var row = cell.parentNode.parentNode;
+    if (tableId=="circleOfInterest"){
+        var lat = row.cells[0].innerHTML;
+        var lon = row.cells[1].innerHTML;
+        var radius = row.cells[2].innerHTML;
+        var loc = new Microsoft.Maps.Location(parseFloat(lat),parseFloat(lon));
+        mapModule.addCircle(loc,radius);
+        return null;
+    }
+
     var index = row.cells[0].innerHTML-1;
     var lat = row.cells[1].innerHTML;
     var lon = row.cells[2].innerHTML;
@@ -182,6 +231,7 @@ function editRowAndUpdateTable(cell){ //To Do
 function deletePin(index,tableId){
     if (tableId=="stationTable") mapModule.deleteStation(index);
     if (tableId=="vertexTable") mapModule.deleteVertex(index);
+    if (tableId=="circleOfInterest") mapModule.deleteCircle();
 
 }
 
@@ -191,7 +241,11 @@ function editPin(loc,index,tableId,alt){
 
 }
 
-
+function calculateVDOP(){
+    mapModule.calculateVDOP( parseFloat(document.getElementById('latitudeResolutionInput').value),
+        parseFloat(document.getElementById('longitudeResolutionInput').value),
+            parseFloat(document.getElementById('altitudeInput').value),0,true);
+}
 
 function addNewRowToTable(idOfTable,indexOfRow,content,buttonDescription,buttonDescription2) {
     var table = document.getElementById(idOfTable);
@@ -199,7 +253,7 @@ function addNewRowToTable(idOfTable,indexOfRow,content,buttonDescription,buttonD
     for (var i = 0; i < content.length; ++i) {
       var cell = row.insertCell(i);
       cell.innerHTML = content[i];
-      if (i>0) cell.contentEditable = true;
+      if ((i>0)||(idOfTable=='circleOfInterest')) cell.contentEditable = true;
     }
     var cell = row.insertCell(content.length);
     cell.innerHTML = buttonDescription;

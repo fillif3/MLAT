@@ -20,7 +20,15 @@ var mapModule = (function() {
     var _VDOPValues = [];
     var _circleRadius=0;
     var _circlePin=null;
-    var _circlePolygon=null
+    var _circlePolygon=null;
+    var _outputId='';
+
+    function setOutputId(val){
+
+        _outputId=val;
+        //console.log(_outputId);
+        //throw 'qweqwe';
+    }
 
     // Geometry transformations between coordiates - Start
 
@@ -186,19 +194,19 @@ var mapModule = (function() {
 
         var VDOP = _computeSingleVDOP(anchors,position,base_station);
         _VDOPValues.push(VDOP);
-        return _getColor(VDOP);
+        return [_getColor(VDOP),VDOP];
 
     }
 
     function calculateVDOP(lat_res,lon_res,altitude,base_station,isCircle){
         _clearVDOP();
-        console.log(altitude);
+        //console.log(altitude);
 
         if (_stationArray.length<3) return null;
         if ((_vertexArray.length<3)&&(!isCircle)) return null;
         if ((_circlePolygon==null)&&(isCircle)) return null;
         var edges = _getPolygonEdgeValues(isCircle);
-        console.log(edges);
+        //console.log(edges);
         var latitudePrecision = (edges.get('max_latitude') - edges.get('min_latitude'))/lat_res;
         var longitudePrecision = (edges.get('max_longitude') - edges.get('min_longitude'))/lon_res;
         var currentLatitude= edges.get('min_latitude');
@@ -211,11 +219,12 @@ var mapModule = (function() {
                 if (_checkIfPointInsidePolygon(currentLatitude,currentLongitude,isCircle)){
                     //console.log('tutaj');
                     //console.log('jestem tu');
-                    var color = _computeColorBasedOnVDOP(currentLatitude,currentLongitude,altitude,base_station);
+                    var [color,VDOP] = _computeColorBasedOnVDOP(currentLatitude,currentLongitude,altitude,base_station);
                     //console.log(color);
                     //throw 'kniec';
                     //console.log('jestem tu2');
                     var pixel = new Microsoft.Maps.Polygon(locationArray,{strokeThickness:0,fillColor:color});
+                    Microsoft.Maps.Events.addHandler(pixel,"mouseover", function (e) { _showVDOP(e); } );
                     _MAP_REFERENCE.entities.push(pixel);
                     _VDOPPixels.push(pixel);
                 }
@@ -230,6 +239,23 @@ var mapModule = (function() {
         console.log(n2,'czas');
         if (_vertexPolygon!=null) _vertexPolygon.setOptions({visible:false});
         if (_circlePolygon!=null) _circlePolygon.setOptions({visible:false});
+        return 0;
+    }
+
+    function _showVDOP(e){
+        //console.log(e);
+        var pixel = e.target;
+        for (var i=0;i<_VDOPPixels.length;++i){
+            if (_VDOPPixels[i]==pixel){
+                break;
+            }
+        }
+        //console.log(pixel);
+        console.log(_VDOPValues);
+        console.log(i);
+        console.log(_outputId);
+        if (_outputId!='') document.getElementById(_outputId).value = _VDOPValues[i-1];
+        getLocalizationMeasurmentError();
     }
 
     function _clearVDOP(){
@@ -407,7 +433,7 @@ var mapModule = (function() {
         });
         _MAP_REFERENCE.entities.push(pin);
         _stationArray.push(pin);
-        console.log(alt);
+        //console.log(alt);
         _stationAltitudeArray.push(alt);
     }
 
@@ -457,6 +483,7 @@ var mapModule = (function() {
         var angle = 0
         var vertexes=[]
         const meter_per_lon = 40075000*Math.cos(3.14*lat/180)/360;
+        _MAP_REFERENCE.entities.remove(_circlePolygon);
 
         for (var i=0;i<30;++i){
             var x = radius*Math.cos(angle)/_meter_per_lat;
@@ -473,6 +500,7 @@ var mapModule = (function() {
 
 
     function addCircle(loc,radius){
+        _clearVDOP();
         //console.log('tutaj');
         //var number = _vertexArray.length+1
         var pin = new Microsoft.Maps.Pushpin(loc, {
@@ -489,6 +517,7 @@ var mapModule = (function() {
     }
 
     function deleteCircle(){
+        _clearVDOP();
         _MAP_REFERENCE.entities.remove(_circlePin);
         _circlePin = null
         _MAP_REFERENCE.entities.remove(_circlePolygon);
@@ -502,7 +531,7 @@ var mapModule = (function() {
         _MAP_REFERENCE = reference;
     }
 
-    function addHandler(typeOfEvent,func) {
+    function addHandlerMap(typeOfEvent,func) {
         deleteHandler(typeOfEvent);
         var referenceToHandler = Microsoft.Maps.Events.addHandler(_MAP_REFERENCE,typeOfEvent, func );
         //console.log(reference);
@@ -531,10 +560,11 @@ var mapModule = (function() {
         addStation:addStation,
         deleteStation:deleteStation,
         deleteVertex:deleteVertex,
-        addHandler: addHandler,
+        addHandlerMap: addHandlerMap,
         deleteHandler:deleteHandler,
         calculateVDOP:calculateVDOP,
         addCircle:addCircle,
-        deleteCircle:deleteCircle
+        deleteCircle:deleteCircle,
+        setOutputId:setOutputId
     };
 })();

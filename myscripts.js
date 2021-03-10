@@ -11,6 +11,7 @@ function GetMap()
     var map = new Microsoft.Maps.Map('#myMap')
 
     mapModule.setMap(map);
+    mapModule.setOutputId('VDOPInput');
 
 
     //addEventToMap('Vertex');
@@ -48,10 +49,18 @@ function GetMap()
 function addEventToMap(whichTable){
     //if (typeOfEvent==="Station") Microsoft.Maps.Events.addHandler(mapModule.getMap(), 'click', function (e) { addNewStation(e); });
     //if (typeOfEvent==="Vertex") Microsoft.Maps.Events.addHandler(mapModule.getMap(), 'click', function (e) { addNewVertex(e); });
-    if (whichTable==="Station") mapModule.addHandler('click', function (e) { addNewStation(e); });
-    if (whichTable==="Vertex") mapModule.addHandler('click', function (e) { addNewVertex(e); });
-    if (whichTable==="Circle") mapModule.addHandler('click', function (e) { addNewCircle(e); });
+    if (whichTable==="Station") mapModule.addHandlerMap('click', function (e) { addNewStation(e); });
+    if (whichTable==="Vertex") mapModule.addHandlerMap('click', function (e) { addNewVertex(e); });
+    if (whichTable==="Circle") mapModule.addHandlerMap('click', function (e) { addNewCircle(e); });
 }
+
+//function addEventToInput(whichTable){
+    //if (typeOfEvent==="Station") Microsoft.Maps.Events.addHandler(mapModule.getMap(), 'click', function (e) { addNewStation(e); });
+    //if (typeOfEvent==="Vertex") Microsoft.Maps.Events.addHandler(mapModule.getMap(), 'click', function (e) { addNewVertex(e); });
+//    if (whichTable==="Station") mapModule.addHandler('click', function (e) { addNewStation(e); });
+//    if (whichTable==="Vertex") mapModule.addHandler('click', function (e) { addNewVertex(e); });
+//    if (whichTable==="Circle") mapModule.addHandler('click', function (e) { addNewCircle(e); });
+//}
 
 
 
@@ -102,6 +111,7 @@ function addNewCircle(e){
         var lat = loc.latitude.toString().slice(0,7);
         var lon = loc.longitude.toString().slice(0,7);
         mapModule.deleteHandler('click');
+        document.getElementById('PanelVDOP').style.display = "none";
         //mapModule.deleteHandler('click');
         //var alt = document.getElementById('altInputPopUp').value;
     }
@@ -208,6 +218,7 @@ function editRowAndUpdateTable(cell){ //To Do
         var radius = row.cells[2].innerHTML;
         var loc = new Microsoft.Maps.Location(parseFloat(lat),parseFloat(lon));
         mapModule.addCircle(loc,radius);
+        document.getElementById('PanelVDOP').style.display = "none";
         return null;
     }
 
@@ -231,7 +242,7 @@ function editRowAndUpdateTable(cell){ //To Do
 function deletePin(index,tableId){
     if (tableId=="stationTable") mapModule.deleteStation(index);
     if (tableId=="vertexTable") mapModule.deleteVertex(index);
-    if (tableId=="circleOfInterest") mapModule.deleteCircle();
+    if (tableId=="circleOfInterest") {document.getElementById('PanelVDOP').style.display = "none";mapModule.deleteCircle();}
 
 }
 
@@ -242,9 +253,10 @@ function editPin(loc,index,tableId,alt){
 }
 
 function calculateVDOP(){
-    mapModule.calculateVDOP( parseFloat(document.getElementById('latitudeResolutionInput').value),
+    var result=mapModule.calculateVDOP( parseFloat(document.getElementById('latitudeResolutionInput').value),
         parseFloat(document.getElementById('longitudeResolutionInput').value),
             parseFloat(document.getElementById('altitudeInput').value),0,true);
+    if (result!=null) document.getElementById('PanelVDOP').style.display = "block";
 }
 
 function addNewRowToTable(idOfTable,indexOfRow,content,buttonDescription,buttonDescription2) {
@@ -304,5 +316,18 @@ function hideMassageWindow(whichDivsHide)
     if (whichDivsHide.includes("long")) hideDiv("longInputPopUpDiv");
     if (whichDivsHide.includes("alt")) hideDiv("altInputPopUpDiv");
     hideDiv('popUp');
+
+}
+
+function getLocalizationMeasurmentError(cell){
+
+    var t_measurment_error = parseFloat(document.getElementById('stationMeasurmentErrorInput').value);
+
+    var VDOP = parseFloat(document.getElementById('VDOPInput').value);
+
+    var localization_error = t_measurment_error*VDOP*0.3;
+    console.log(t_measurment_error,VDOP,localization_error);
+    var out = document.getElementById('localizationMeasurmentErrorInput');
+    out.value = localization_error;
 
 }

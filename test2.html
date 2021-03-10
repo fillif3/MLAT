@@ -46,6 +46,7 @@
                     <button type="button"  onclick="showMassageWindow('lat_long_alt','Station')"  class="halfWidthButton">Add station by typing location</button>
                 </div>
             </div>
+            <!--
             <div>
                 <table id = "vertexTable">
                     <thead>
@@ -71,7 +72,33 @@
                     <button type="button"  onclick="showMassageWindow('lat_long','Vertex')" class="halfWidthButton">Add vertex by typing location</button>
                 </div>
             </div>
+            -->
 
+            <table id = "circleOfInterest">
+                <thead>
+                <tr>
+                    <th colspan="5">Current stations<br></th>
+                </tr>
+                <tr>
+                    <th colspan="2">Center<br></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>Latitude</td>
+                    <td>Longitude</td>
+                    <td>radius (in meters)</td>
+                    <td></td>
+                </tr>
+                </tbody>
+            </table>
+            <div>
+                <button type="button" class="fullWidthButton" onclick="addEventToMap('Circle')">
+                    select the coordinates of the center of the circle of the place of interest
+
+                </button>
+            </div>
+            <br>
             <div>
                 <button type="button" class="fullWidthButton">Center map</button>
             </div>
@@ -90,18 +117,18 @@
             </div>
             <div>
                 <div class="halfWidthDivLeft">
-                    <label >Latitude precision:</label>
-                    <input type="text"  maxlength="10" size="10">
+                    <label >Latitude resolution:</label>
+                    <input id = "latitudeResolutionInput"type="text" value="100" maxlength="10" size="10">
                 </div>
                 <div class="halfWidthDivLeft">
-                    <label >Longitude precision:</label>
-                    <input type="text"  maxlength="10" size="10">
+                    <label >Longitude resolution:</label>
+                    <input id = "longitudeResolutionInput"type="text"  value="100" maxlength="10" size="10">
                 </div>
             </div>
             <div>
                 <div class="halfWidthDivLeft">
                     <label >Altitude (meters):</label>
-                    <input type="text"  maxlength="10" size="10">
+                    <input id = "altitudeInput"type="text"  value="1000" maxlength="10" size="10">
                 </div>
                 <div class="halfWidthDivLeft">
                     <label >Select base station:</label>
@@ -111,13 +138,21 @@
                 </div>
             </div>
             <div id="calculateButton">
-                <button type="button" onclick="mapModule.calculateVDOP(0.001,0.001,9000,0)" class="fullWidthButton">Calculate VDOP</button>
+                <button type="button" onclick="calculateVDOP()" class="fullWidthButton">Calculate VDOP</button>
             </div>
         </div>
 
 
     </div>
     <div id="myMap" ></div>
+    <div id = "PanelVDOP">
+        <label >Station measurment error (ns):</label>
+        <input id = "stationMeasurmentErrorInput" onchange="getLocalizationMeasurmentError()" type="text"  maxlength="10" size="10">
+        <label >VDOP:</label>
+        <input id = "VDOPInput" readonly type="text" onchange="getLocalizationMeasurmentError()" maxlength="10" size="10">
+        <label >Localization measurment error (m):</label>
+        <input id = "localizationMeasurmentErrorInput" readonly type="text"  maxlength="10" size="10">
+    </div>
     <div id="popUp" >
         <div class="bigCenteredText">
             Select parameters

@@ -16,11 +16,14 @@
 </head>
 <body>
     <div id="myPanel" >
-        <div id="hideButton">
-            <button type="button" onclick="testFunction('Station')" class="fullWidthButton">Hide panel</button>
+        <div id="hideButton" >
+            <button type="button" onclick="toggle('controls')" class="fullWidthButton">Panel - hide/show</button>
         </div>
-        <div id="controls">
+        <div id="controls" class='hidden'>
             <div>
+                <button type="button" onclick="toggle('stationsDiv')" class="fullWidthButton">Stations information - hide/show</button>
+            </div>
+            <div id="stationsDiv" class='hidden'>
                 <table id = "stationTable">
                     <thead>
                       <tr>
@@ -37,13 +40,14 @@
                       </tr>
                     </tbody>
                 </table>
-            </div>
-            <div>
+
                 <div>
-                    <button type="button" onclick="addEventToMap('Station')" class="halfWidthButton">Add station by clicking</button>
-                </div>
-                <div>
-                    <button type="button"  onclick="showMassageWindow('lat_long_alt','Station')"  class="halfWidthButton">Add station by typing location</button>
+                    <div>
+                        <button type="button" onclick="addEventToMap('Station')" class="halfWidthButtonBlue">Add station by clicking</button>
+                    </div>
+                    <div>
+                        <button type="button"  onclick="showMassageWindow('lat_long_alt','Station')"  class="halfWidthButtonBlue">Add station by typing location</button>
+                    </div>
                 </div>
             </div>
             <!--
@@ -73,32 +77,37 @@
                 </div>
             </div>
             -->
-
-            <table id = "circleOfInterest">
-                <thead>
-                <tr>
-                    <th colspan="5">Current stations<br></th>
-                </tr>
-                <tr>
-                    <th colspan="2">Center<br></th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr>
-                    <td>Latitude</td>
-                    <td>Longitude</td>
-                    <td>radius (in meters)</td>
-                    <td></td>
-                </tr>
-                </tbody>
-            </table>
             <div>
-                <button type="button" class="fullWidthButton" onclick="addEventToMap('Circle')">
-                    select the coordinates of the center of the circle of the place of interest
+                <button type="button" onclick="toggle('circleOfInterestDiv')" class="fullWidthButton">Stations information - hide/show</button>
+            </div>
+            <div class='hidden' id ="circleOfInterestDiv">
+                <table id = "circleOfInterest">
+                    <thead>
+                    <tr>
+                        <th colspan="5">Current stations<br></th>
+                    </tr>
+                    <tr>
+                        <th colspan="2">Center<br></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>Latitude</td>
+                        <td>Longitude</td>
+                        <td>radius (in meters)</td>
+                        <td></td>
+                    </tr>
+                    </tbody>
+                </table>
+                <div>
+                    <button type="button" class="fullWidthButtonBlue" onclick="addEventToMap('Circle')">
+                        select the coordinates of the center of the circle of the place of interest
 
-                </button>
+                    </button>
+                </div>
             </div>
             <br>
+            <!--
             <div>
                 <button type="button" class="fullWidthButton">Center map</button>
             </div>
@@ -112,29 +121,32 @@
                     <input type="text"  maxlength="10" size="10">
                 </div>
             </div>
-            <div class="bigCenteredText">
-                Addational parameters
-            </div>
+            -->
             <div>
-                <div class="halfWidthDivLeft">
-                    <label >Latitude resolution:</label>
-                    <input id = "latitudeResolutionInput"type="text" value="100" maxlength="10" size="10">
-                </div>
-                <div class="halfWidthDivLeft">
-                    <label >Longitude resolution:</label>
-                    <input id = "longitudeResolutionInput"type="text"  value="100" maxlength="10" size="10">
-                </div>
+                <button type="button" onclick="toggle('addationalParametersDiv')" class="fullWidthButton">Addational parameters - hide/show</button>
             </div>
-            <div>
-                <div class="halfWidthDivLeft">
-                    <label >Altitude (meters):</label>
-                    <input id = "altitudeInput"type="text"  value="1000" maxlength="10" size="10">
+            <div class = "hidden" id="addationalParametersDiv">
+                <div >
+                    <div class="halfWidthDivLeft">
+                        <label >Latitude resolution:</label>
+                        <input id = "latitudeResolutionInput"type="text" value="100" maxlength="10" size="10">
+                    </div>
+                    <div class="halfWidthDivLeft">
+                        <label >Longitude resolution:</label>
+                        <input id = "longitudeResolutionInput"type="text"  value="100" maxlength="10" size="10">
+                    </div>
                 </div>
-                <div class="halfWidthDivLeft">
-                    <label >Select base station:</label>
-                    <select >
-                    <option value="best">Best station</option>
-                    </select>
+                <div>
+                    <div class="halfWidthDivLeft">
+                        <label >Altitude (meters):</label>
+                        <input id = "altitudeInput"type="text"  value="1000" maxlength="10" size="10">
+                    </div>
+                    <div  class="halfWidthDivLeft">
+                        <label >Select base station:</label>
+                        <select id="selectStationList">
+                        <option value="best">Best station</option>
+                        </select>
+                    </div>
                 </div>
             </div>
             <div id="calculateButton">

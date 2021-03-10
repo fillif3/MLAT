@@ -96,8 +96,8 @@ function addNewVertex(e){
     var content = [newRow-1,lat,lon ] ;
     //console.log(content);
     addNewRowToTable("vertexTable",newRow,content,
-    '<button type="button" onclick=editRowAndUpdateTable(this) class="fullWidthButton">Edit Vertex clicking</button>',
-        '<button type="button" onclick=deleteRowAndUpdateTable(this) class="fullWidthButton">Delete Vertex clicking</button>');
+    '<button type="button" onclick=editRowAndUpdateTable(this,"Vertex") class="fullWidthButton">Edit Vertex clicking</button>',
+        '<button type="button" onclick=deleteRowAndUpdateTable(this,"Vertex") class="fullWidthButton">Delete Vertex clicking</button>');
     hideMassageWindow('lat_lon_alt');
 }
 
@@ -135,8 +135,8 @@ function addNewCircle(e){
     var content = [lat,lon ,2000] ;
     //console.log(content);
     addNewRowToTable("circleOfInterest",newRow,content,
-        '<button type="button" onclick=editRowAndUpdateTable(this) class="fullWidthButton">Edit Vertex clicking</button>',
-        '<button type="button" onclick=deleteRowAndUpdateTable(this) class="fullWidthButton">Delete Vertex clicking</button>');
+        '<button type="button" onclick=editRowAndUpdateTable(this,"Circle") class="fullWidthButton">Edit Vertex clicking</button>',
+        '<button type="button" onclick=deleteRowAndUpdateTable(this,"Circle") class="fullWidthButton">Delete Vertex clicking</button>');
     hideMassageWindow('lat_lon_alt');
     if (newRow>3) table.rows[4].parentNode.removeChild(table.rows[3]);
 }
@@ -172,12 +172,26 @@ function addNewStation(e){
     var newRow = table.rows.length;
     var content = [newRow-1,lat,lon,alt ] ;
     addNewRowToTable("stationTable",newRow,content,
-    '<button type="button" onclick=editRowAndUpdateTable(this) class="fullWidthButton">Edit Station clicking</button>',
-        '<button type="button" onclick=deleteRowAndUpdateTable(this) class="fullWidthButton">Delete Station clicking</button>');
+    '<button type="button" onclick=editRowAndUpdateTable(this,"station") class="fullWidthButton">Edit Station clicking</button>',
+        '<button type="button" onclick=deleteRowAndUpdateTable(this,"station") class="fullWidthButton">Delete Station clicking</button>');
     hideMassageWindow('lat_lon_alt');
+    addStationToList();
 }
 
-function deleteRowAndUpdateTable(cell){
+function addStationToList(){
+    var list= document.getElementById("selectStationList");
+    var opt = document.createElement('option');
+    opt.value = list.length;
+    opt.innerHTML = list.length;
+    list.appendChild(opt);
+}
+
+function removeStationToList(){
+    var list= document.getElementById("selectStationList");
+    list.remove(list.length-1);
+}
+
+function deleteRowAndUpdateTable(cell,where){
 
     var tableId = cell.parentNode.parentNode.parentNode.parentNode.id
     var table = document.getElementById(tableId);
@@ -204,6 +218,7 @@ function deleteRowAndUpdateTable(cell){
     }
 
     if (flag) deletePin(numberOfRows-2,tableId);
+    if (where=='station') removeStationToList();
 }
 
 function editRowAndUpdateTable(cell){ //To Do
@@ -330,4 +345,10 @@ function getLocalizationMeasurmentError(cell){
     var out = document.getElementById('localizationMeasurmentErrorInput');
     out.value = localization_error;
 
+}
+
+function toggle(divId){
+    div = document.getElementById(divId);
+    if (div.style.display=="none") div.style.display="block";
+    else div.style.display="none";
 }

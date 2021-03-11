@@ -4,7 +4,7 @@ var mapModule = (function() {
 
     const _semimajor_axis = 6378137.0;
     const _semiminor_axis = 6356752.31424518
-    const _flattening = (_semimajor_axis - _semiminor_axis) / _semimajor_axis;
+    //const _flattening = (_semimajor_axis - _semiminor_axis) / _semimajor_axis;
     //const _thirdflattening = (_semimajor_axis - _semiminor_axis) / (_semimajor_axis + _semiminor_axis);
     //const _eccentricity = Math.sqrt(2 * _flattening - _flattening **2);
     const _meter_per_lat = 111320;
@@ -50,8 +50,8 @@ var mapModule = (function() {
 
     function _uvw2enu(u, v, w, lat0, lon0){
         if (Math.abs(lat0)>90) return [null,null,null];
-        var lat0 = _degrees_to_radians(lat0);
-        var lon0 = _degrees_to_radians(lon0);
+        lat0 = _degrees_to_radians(lat0);
+        lon0 = _degrees_to_radians(lon0);
         var t = Math.cos(lon0) * u + Math.sin(lon0) * v;
         var East = -Math.sin(lon0) * u + Math.cos(lon0) * v;
         var Up = Math.cos(lat0) * t + Math.sin(lat0) * w
@@ -75,8 +75,7 @@ var mapModule = (function() {
     // Jacobian functions
 
     function _compute_Q(size){
-        var Q = math.add(math.identity(size),math.ones(size,size));
-        return Q;
+        return math.add(math.identity(size),math.ones(size,size));
     }
 
     function _create_array2D(size1,size2){
@@ -141,45 +140,63 @@ var mapModule = (function() {
     // Computing VDOP
 
     function _computeSingleVDOP(anchors,position,base){
-        if (base!=-1){
-            var helper = anchors[base];
-            anchors[base]=anchors[0];
+        if (base===-1){
+            var new_bases = [];
+            for (let i=0;i<anchors.length;i++){
+                new_bases.push(i);
+            }
+
+        } else {var new_bases = [base];}
+
+        var minVDOP = Number.MAX_VALUE;
+
+        for (let i=0;i<new_bases.length;i++) {
+
+            var helper = JSON.parse(JSON.stringify(anchors[new_bases[i]]));
+            anchors[new_bases[i]]=JSON.parse(JSON.stringify(anchors[0]));
             anchors[0]=helper;
+
+            //console.log(new_bases);
+            //console.log(anchors);
+            //throw 'koniec';
+            //console.log(anchors);
+            //console.log(position);
+            var Jacobian = _computeJacobian2dot5D(anchors, position);
+            //console.log(Jacobian);
+            var Q = _compute_Q(anchors.length - 1);
+            //console.log(Q,'Q');
+            //try{
+            //console.log(anchors)
+            //console.log(position)
+            try {
+                var transposed_Jacobian = math.transpose(Jacobian);
+                //console.log(JSON.parse(JSON.stringify(transposed_Jacobian)),'transposed_Jacobian');
+                var equation = math.multiply(transposed_Jacobian, Jacobian);//np.dot(tran_J,J)
+                //console.log(JSON.parse(JSON.stringify(equation)),'eq2');
+                equation = math.inv(equation);//np.linalg.inv(equation)
+                //console.log(JSON.parse(JSON.stringify(equation)),'eq3');
+                equation = math.multiply(equation, transposed_Jacobian);//np.dot(equation,tran_J)
+                //console.log(JSON.parse(JSON.stringify(equation)),'eq4');
+                equation = math.multiply(equation, Q);//np.dot(equation, Q)
+                //console.log(JSON.parse(JSON.stringify(equation)),'eq5');
+                equation = math.multiply(equation, Jacobian);//np.dot(equation, J)
+                //console.log(JSON.parse(JSON.stringify(equation)),'eq6');
+                equation = math.multiply(equation, math.inv(math.multiply(transposed_Jacobian, Jacobian)));//np.dot(equation, np.linalg.inv(np.dot(tran_J,J)))
+                //console.log(JSON.parse(JSON.stringify(equation)),'eq7');
+                //throw "koniec";
+                //equation = Math.sqrt(equation._data[0][0]+equation._data[1][1]);
+                //console.log(JSON.parse(JSON.stringify(equation)),'eq7');
+                //throw "koniec";
+                let out = Math.sqrt(equation._data[0][0] + equation._data[1][1]);
+                if (out < minVDOP) minVDOP = out;
+
+            }
+                //}
+            catch (e) {
+                //continue;
+            }
         }
-        //console.log(anchors);
-        //console.log(position);
-        var Jacobian=_computeJacobian2dot5D(anchors,position);
-        //console.log(Jacobian);
-        var Q = _compute_Q(anchors.length-1);
-        //console.log(Q,'Q');
-        //try{
-        //console.log(anchors)
-        //console.log(position)
-        try{
-            var transposed_Jacobian = math.transpose(Jacobian);
-            //console.log(JSON.parse(JSON.stringify(transposed_Jacobian)),'transposed_Jacobian');
-            var equation = math.multiply(transposed_Jacobian,Jacobian);//np.dot(tran_J,J)
-            //console.log(JSON.parse(JSON.stringify(equation)),'eq2');
-            equation=  math.inv(equation);//np.linalg.inv(equation)
-            //console.log(JSON.parse(JSON.stringify(equation)),'eq3');
-            equation = math.multiply(equation,transposed_Jacobian);//np.dot(equation,tran_J)
-            //console.log(JSON.parse(JSON.stringify(equation)),'eq4');
-            equation = math.multiply(equation,Q);//np.dot(equation, Q)
-            //console.log(JSON.parse(JSON.stringify(equation)),'eq5');
-            equation = math.multiply(equation,Jacobian);//np.dot(equation, J)
-            //console.log(JSON.parse(JSON.stringify(equation)),'eq6');
-            equation = math.multiply(equation,math.inv(math.multiply(transposed_Jacobian,Jacobian)));//np.dot(equation, np.linalg.inv(np.dot(tran_J,J)))
-            //console.log(JSON.parse(JSON.stringify(equation)),'eq7');
-            //throw "koniec";
-            //equation = Math.sqrt(equation._data[0][0]+equation._data[1][1]);
-            //console.log(JSON.parse(JSON.stringify(equation)),'eq7');
-            //throw "koniec";
-            return Math.sqrt(equation._data[0][0]+equation._data[1][1]);
-        }
-        //}
-        catch (e){
-            return 41;
-        }
+        return minVDOP;
     }
 
 
@@ -194,13 +211,14 @@ var mapModule = (function() {
 
         var VDOP = _computeSingleVDOP(anchors,position,base_station);
         _VDOPValues.push(VDOP);
-        return [_getColor(VDOP),VDOP];
+        return _getColor(VDOP);
 
     }
 
     function calculateVDOP(lat_res,lon_res,altitude,base_station,isCircle){
         _clearVDOP();
-        //console.log(altitude);
+        base_station--;
+        //throw "123321";
 
         if (_stationArray.length<3) return null;
         if ((_vertexArray.length<3)&&(!isCircle)) return null;
@@ -219,7 +237,7 @@ var mapModule = (function() {
                 if (_checkIfPointInsidePolygon(currentLatitude,currentLongitude,isCircle)){
                     //console.log('tutaj');
                     //console.log('jestem tu');
-                    var [color,VDOP] = _computeColorBasedOnVDOP(currentLatitude,currentLongitude,altitude,base_station);
+                    var color = _computeColorBasedOnVDOP(currentLatitude,currentLongitude,altitude,base_station);
                     //console.log(color);
                     //throw 'kniec';
                     //console.log('jestem tu2');
@@ -246,7 +264,7 @@ var mapModule = (function() {
         //console.log(e);
         var pixel = e.target;
         for (var i=0;i<_VDOPPixels.length;++i){
-            if (_VDOPPixels[i]==pixel){
+            if (_VDOPPixels[i]===pixel){
                 break;
             }
         }
@@ -254,7 +272,7 @@ var mapModule = (function() {
         console.log(_VDOPValues);
         console.log(i);
         console.log(_outputId);
-        if (_outputId!='') document.getElementById(_outputId).value = _VDOPValues[i-1];
+        if (_outputId!=='') document.getElementById(_outputId).value = _VDOPValues[i-1];
         getLocalizationMeasurmentError();
     }
 
@@ -334,7 +352,7 @@ var mapModule = (function() {
             //console.log(numberOfIntersections);
             //console.log(numberOfIntersections % 2 == 1)
         }
-        return numberOfIntersections%2==1;
+        return numberOfIntersections%2===1;
     }
 
 
@@ -546,15 +564,15 @@ var mapModule = (function() {
     }
 
 
-    function getMap() {
-        //console.log(reference);
-        return _MAP_REFERENCE;
-    }
+    //function getMap() {
+    //    //console.log(reference);
+    //    return _MAP_REFERENCE;
+    //}
 
     return {
         addVertex:addVertex,
         setMap: setMap,
-        getMap: getMap,
+        //getMap: getMap,
         EditStation:EditStation,
         EditVertex:EditVertex,
         addStation:addStation,

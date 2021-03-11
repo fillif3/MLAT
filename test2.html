@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <script  type='text/javascript' src="jquery-1.4.3.min.js"></script>
     <script type='text/javascript'
             src='http://www.bing.com/api/maps/mapcontrol?callback=GetMap&key=AnZkuesgU6PcC_kMP-WGAVGtBJiFPd-brWkgdVHemDv5DSFwg8zsQbuFwxBbIbtH'
             async defer>
@@ -17,36 +18,33 @@
 <body>
     <div id="myPanel" >
         <div id="hideButton" >
-            <button type="button" onclick="toggle('controls')" class="fullWidthButton">Panel - hide/show</button>
+            <button type="button" onclick="toggle('controls')" class="hideButton">Panel - hide/show</button>
         </div>
         <div id="controls" class='hidden'>
             <div>
-                <button type="button" onclick="toggle('stationsDiv')" class="fullWidthButton">Stations information - hide/show</button>
+                <button type="button" onclick="toggle('stationsDiv')" class="hideButton">Stations information - hide/show</button>
             </div>
-            <div id="stationsDiv" class='hidden'>
-                <table id = "stationTable">
-                    <thead>
-                      <tr>
-                        <th colspan="6">Current stations<br></th>
-                      </tr>
-                    </thead>
+            <div id="stationsDiv" class='hidden table-wrapper'>
+                <table id = "stationTable" class = 'fl-table'>
+
                     <tbody>
                       <tr>
                         <td>Nr</td>
                         <td>Latitude</td>
                         <td>Longitude</td>
                         <td>Altitude (meters)</td>
-                        <td></td>
+                        <td>Edit button</td>
+                          <td>Delete button</td>
                       </tr>
                     </tbody>
                 </table>
 
                 <div>
                     <div>
-                        <button type="button" onclick="addEventToMap('Station')" class="halfWidthButtonBlue">Add station by clicking</button>
+                        <button type="button" onclick="addEventToMap('Station')" class="buttonSkip">Add station by clicking</button>
                     </div>
                     <div>
-                        <button type="button"  onclick="showMassageWindow('lat_long_alt','Station')"  class="halfWidthButtonBlue">Add station by typing location</button>
+                        <button type="button"  onclick="showMassageWindow('lat_long_alt','Station')"  class="buttonSkip">Add station by typing location</button>
                     </div>
                 </div>
             </div>
@@ -78,7 +76,7 @@
             </div>
             -->
             <div>
-                <button type="button" onclick="toggle('circleOfInterestDiv')" class="fullWidthButton">Stations information - hide/show</button>
+                <button type="button" onclick="toggle('circleOfInterestDiv')" class="hideButton">Stations information - hide/show</button>
             </div>
             <div class='hidden' id ="circleOfInterestDiv">
                 <table id = "circleOfInterest">
@@ -100,7 +98,7 @@
                     </tbody>
                 </table>
                 <div>
-                    <button type="button" class="fullWidthButtonBlue" onclick="addEventToMap('Circle')">
+                    <button type="button" class="buttonSkip fullWidth" onclick="addEventToMap('Circle')">
                         select the coordinates of the center of the circle of the place of interest
 
                     </button>
@@ -123,7 +121,7 @@
             </div>
             -->
             <div>
-                <button type="button" onclick="toggle('addationalParametersDiv')" class="fullWidthButton">Addational parameters - hide/show</button>
+                <button type="button" onclick="toggle('addationalParametersDiv')" class="hideButton">Addational parameters - hide/show</button>
             </div>
             <div class = "hidden" id="addationalParametersDiv">
                 <div >
@@ -144,13 +142,13 @@
                     <div  class="halfWidthDivLeft">
                         <label >Select base station:</label>
                         <select id="selectStationList">
-                        <option value="best">Best station</option>
+                        <option value=0>Best station</option>
                         </select>
                     </div>
                 </div>
             </div>
             <div id="calculateButton">
-                <button type="button" onclick="calculateVDOP()" class="fullWidthButton">Calculate VDOP</button>
+                <button type="button" onclick="calculateVDOP()" class="hideButton">Calculate VDOP</button>
             </div>
         </div>
 

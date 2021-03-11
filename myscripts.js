@@ -96,8 +96,8 @@ function addNewVertex(e){
     var content = [newRow-1,lat,lon ] ;
     //console.log(content);
     addNewRowToTable("vertexTable",newRow,content,
-    '<button type="button" onclick=editRowAndUpdateTable(this,"Vertex") class="fullWidthButton">Edit Vertex clicking</button>',
-        '<button type="button" onclick=deleteRowAndUpdateTable(this,"Vertex") class="fullWidthButton">Delete Vertex clicking</button>');
+    '<button type="button" onclick=editRowAndUpdateTable(this,"Vertex") class="buttonSkip fullWidth">Edit</button>',
+        '<button type="button" onclick=deleteRowAndUpdateTable(this,"Vertex") class="buttonSkip fullWidth">Delete</button>');
     hideMassageWindow('lat_lon_alt');
 }
 
@@ -135,8 +135,8 @@ function addNewCircle(e){
     var content = [lat,lon ,2000] ;
     //console.log(content);
     addNewRowToTable("circleOfInterest",newRow,content,
-        '<button type="button" onclick=editRowAndUpdateTable(this,"Circle") class="fullWidthButton">Edit Vertex clicking</button>',
-        '<button type="button" onclick=deleteRowAndUpdateTable(this,"Circle") class="fullWidthButton">Delete Vertex clicking</button>');
+        '<button type="button" onclick=editRowAndUpdateTable(this,"Circle") class="buttonSkip fullWidth">Edit</button>',
+        '<button type="button" onclick=deleteRowAndUpdateTable(this,"Circle") class="buttonSkip fullWidth">Delete</button>');
     hideMassageWindow('lat_lon_alt');
     if (newRow>3) table.rows[4].parentNode.removeChild(table.rows[3]);
 }
@@ -172,8 +172,8 @@ function addNewStation(e){
     var newRow = table.rows.length;
     var content = [newRow-1,lat,lon,alt ] ;
     addNewRowToTable("stationTable",newRow,content,
-    '<button type="button" onclick=editRowAndUpdateTable(this,"station") class="fullWidthButton">Edit Station clicking</button>',
-        '<button type="button" onclick=deleteRowAndUpdateTable(this,"station") class="fullWidthButton">Delete Station clicking</button>');
+    '<button type="button" onclick=editRowAndUpdateTable(this,"station") class="buttonSkip fullWidth">Edit</button>',
+        '<button type="button" onclick=deleteRowAndUpdateTable(this,"station") class="buttonSkip fullWidth">Delete</button>');
     hideMassageWindow('lat_lon_alt');
     addStationToList();
 }
@@ -270,7 +270,8 @@ function editPin(loc,index,tableId,alt){
 function calculateVDOP(){
     var result=mapModule.calculateVDOP( parseFloat(document.getElementById('latitudeResolutionInput').value),
         parseFloat(document.getElementById('longitudeResolutionInput').value),
-            parseFloat(document.getElementById('altitudeInput').value),0,true);
+            parseFloat(document.getElementById('altitudeInput').value),
+    document.getElementById('selectStationList').value,true);
     if (result!=null) document.getElementById('PanelVDOP').style.display = "block";
 }
 
@@ -348,7 +349,9 @@ function getLocalizationMeasurmentError(cell){
 }
 
 function toggle(divId){
-    div = document.getElementById(divId);
-    if (div.style.display=="none") div.style.display="block";
-    else div.style.display="none";
+    //div = document.getElementById(divId);
+
+    //if (div.style.display==="none") div.style.display="block";
+    //else div.style.display="none";
+    $('#'+divId).slideToggle("slow");
 }

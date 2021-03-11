@@ -48,52 +48,50 @@
                     </div>
                 </div>
             </div>
-            <!--
-            <div>
-                <table id = "vertexTable">
-                    <thead>
-                      <tr>
-                        <th colspan="5">Vertex of Polygon of interest<br></th>
-                      </tr>
-                    </thead>
+
+
+            <div id = "polygonOfInterestHideButton">
+                <button   type="button" onclick="toggle('polygonOfInterestDiv')" class="hideButton">Polygon information - hide/show</button>
+            </div>
+            <div class='hidden' id ="polygonOfInterestDiv">
+                <table id = "vertexTable" class = 'fl-table'>
                     <tbody>
                       <tr>
                         <td>Nr</td>
                         <td>Latitude</td>
                         <td>Longitude</td>
-                        <td></td>
+                        <td>Edit button</td><td>Delete button</td>
                       </tr>
                     </tbody>
                 </table>
-            </div>
-            <div>
                 <div>
-                    <button type="button"  onclick="addEventToMap('Vertex')" class="halfWidthButton">Add vertex by clicking</button>
-                </div>
-                <div>
-                    <button type="button"  onclick="showMassageWindow('lat_long','Vertex')" class="halfWidthButton">Add vertex by typing location</button>
+                    <div>
+                        <button type="button"  onclick="addEventToMap('Vertex')" class="buttonSkip">Add vertex by clicking</button>
+                    </div>
+                    <div>
+                        <button type="button"  onclick="showMassageWindow('lat_long','Vertex')" class="buttonSkip">Add vertex by typing location</button>
+                    </div>
                 </div>
             </div>
-            -->
-            <div>
-                <button type="button" onclick="toggle('circleOfInterestDiv')" class="hideButton">Stations information - hide/show</button>
+
+
+
+
+            <div id ="circleOfInterestHideDiv">
+                <button type="button" onclick="toggle('circleOfInterestDiv')" class="hideButton">Circle of interest - hide/show</button>
             </div>
             <div class='hidden' id ="circleOfInterestDiv">
-                <table id = "circleOfInterest">
-                    <thead>
-                    <tr>
-                        <th colspan="5">Current stations<br></th>
-                    </tr>
-                    <tr>
-                        <th colspan="2">Center<br></th>
-                    </tr>
-                    </thead>
+                <table  class = 'fl-table' id = "circleOfInterest">
+
                     <tbody>
+                    <tr>
+                        <th colspan="2">Center<br></th><td></td><td></td><td></td>
+                    </tr>
                     <tr>
                         <td>Latitude</td>
                         <td>Longitude</td>
                         <td>radius (in meters)</td>
-                        <td></td>
+                        <td>Edit button</td><td>Delete button</td>
                     </tr>
                     </tbody>
                 </table>
@@ -126,29 +124,35 @@
             <div class = "hidden" id="addationalParametersDiv">
                 <div >
                     <div class="halfWidthDivLeft">
-                        <label >Latitude resolution:</label>
-                        <input id = "latitudeResolutionInput"type="text" value="100" maxlength="10" size="10">
+                        <label class="halfWidthDivLeft">Latitude resolution:</label>
+                        <input class="halfWidthDivLeft" id = "latitudeResolutionInput"type="text" value="100" maxlength="10" size="10">
                     </div>
                     <div class="halfWidthDivLeft">
-                        <label >Longitude resolution:</label>
-                        <input id = "longitudeResolutionInput"type="text"  value="100" maxlength="10" size="10">
+                        <label class="halfWidthDivLeft" >Longitude resolution:</label>
+                        <input class="halfWidthDivLeft" id = "longitudeResolutionInput"type="text"  value="100" maxlength="10" size="10">
                     </div>
                 </div>
                 <div>
                     <div class="halfWidthDivLeft">
-                        <label >Altitude (meters):</label>
-                        <input id = "altitudeInput"type="text"  value="1000" maxlength="10" size="10">
+                        <label class="halfWidthDivLeft" >Altitude (meters):</label>
+                        <input class="halfWidthDivLeft" id = "altitudeInput"type="text"  value="1000" maxlength="10" size="10">
                     </div>
                     <div  class="halfWidthDivLeft">
-                        <label >Select base station:</label>
-                        <select id="selectStationList">
+                        <label class="halfWidthDivLeft" >Select base station:</label>
+                        <select class="halfWidthDivLeft" id="selectStationList">
                         <option value=0>Best station</option>
                         </select>
                     </div>
                 </div>
+                <div>
+                    <div class="halfWidthDivLeft">
+                        <label class="halfWidthDivLeft" >Do you want to use more complex polygon?:</label>
+                        <input type="checkbox" value=false onclick="togglePolygon(this)" id="polygonCheckBox" >
+                    </div>
+                </div>
             </div>
             <div id="calculateButton">
-                <button type="button" onclick="calculateVDOP()" class="hideButton">Calculate VDOP</button>
+                <button type="button" onclick="calculateVDOP()" class="buttonSkip fullWidth notMargin">Calculate VDOP</button>
             </div>
         </div>
 

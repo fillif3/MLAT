@@ -9,9 +9,11 @@ function testFunction(test){
 function GetMap()
 {
     var map = new Microsoft.Maps.Map('#myMap')
+    //alert("This is test box!");
 
     mapModule.setMap(map);
     mapModule.setOutputId('VDOPInput');
+
 
 
     //addEventToMap('Vertex');
@@ -138,7 +140,7 @@ function addNewCircle(e){
         '<button type="button" onclick=editRowAndUpdateTable(this,"Circle") class="buttonSkip fullWidth">Edit</button>',
         '<button type="button" onclick=deleteRowAndUpdateTable(this,"Circle") class="buttonSkip fullWidth">Delete</button>');
     hideMassageWindow('lat_lon_alt');
-    if (newRow>3) table.rows[4].parentNode.removeChild(table.rows[3]);
+    if (newRow>2) table.rows[3].parentNode.removeChild(table.rows[2]);
 }
 
 function addNewStation(e){
@@ -271,7 +273,8 @@ function calculateVDOP(){
     var result=mapModule.calculateVDOP( parseFloat(document.getElementById('latitudeResolutionInput').value),
         parseFloat(document.getElementById('longitudeResolutionInput').value),
             parseFloat(document.getElementById('altitudeInput').value),
-    document.getElementById('selectStationList').value,true);
+    document.getElementById('selectStationList').value,
+        !document.getElementById('polygonCheckBox').checked);
     if (result!=null) document.getElementById('PanelVDOP').style.display = "block";
 }
 
@@ -354,4 +357,22 @@ function toggle(divId){
     //if (div.style.display==="none") div.style.display="block";
     //else div.style.display="none";
     $('#'+divId).slideToggle("slow");
+}
+
+function togglePolygon(checkBox){
+    if (checkBox.checked){
+        $('#'+"circleOfInterestDiv").slideUp("slow");
+        $('#'+"circleOfInterestHideDiv").slideUp("slow");
+        //$('#'+"polygonOfInterestDiv").slideDown("slow");
+        $('#'+"polygonOfInterestHideButton").slideDown("slow");
+        mapModule.vertexPolygonVisibility(true);
+        mapModule.circlePolygonVisibility(false);
+    } else {
+        //$('#'+"circleOfInterestDiv").slideDown("slow");
+        $('#'+"circleOfInterestHideDiv").slideDown("slow");
+        $('#'+"polygonOfInterestDiv").slideUp("slow");
+        $('#'+"polygonOfInterestHideButton").slideUp("slow");
+        mapModule.vertexPolygonVisibility(false);
+        mapModule.circlePolygonVisibility(true);
+    }
 }

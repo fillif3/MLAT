@@ -251,3 +251,8 @@ table{
   display: block;
   text-align: center;
 }
+
+.notMargin{
+  margin: 0;
+  width: 100%;
+}

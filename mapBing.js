@@ -218,11 +218,13 @@ var mapModule = (function() {
     function calculateVDOP(lat_res,lon_res,altitude,base_station,isCircle){
         _clearVDOP();
         base_station--;
-        //throw "123321";
+
+
 
         if (_stationArray.length<3) return null;
         if ((_vertexArray.length<3)&&(!isCircle)) return null;
         if ((_circlePolygon==null)&&(isCircle)) return null;
+        console.log(isCircle);
         var edges = _getPolygonEdgeValues(isCircle);
         //console.log(edges);
         var latitudePrecision = (edges.get('max_latitude') - edges.get('min_latitude'))/lat_res;
@@ -464,6 +466,10 @@ var mapModule = (function() {
 
     //  Vertexes functions
 
+    function vertexPolygonVisibility(flag){
+        if (_vertexPolygon!=null) _vertexPolygon.setOptions({visible:flag});
+    }
+
     function EditVertex(loc,index){
         var newPin = new Microsoft.Maps.Pushpin(loc, {
             title: 'Vertex',
@@ -496,6 +502,10 @@ var mapModule = (function() {
     }
 
     // Circle functions
+
+    function circlePolygonVisibility(flag){
+        if (_circlePolygon!=null) _circlePolygon.setOptions({visible:flag});
+    }
 
     function _calculateVertexesOfCircle(lat,lon,radius){
         var angle = 0
@@ -583,6 +593,8 @@ var mapModule = (function() {
         calculateVDOP:calculateVDOP,
         addCircle:addCircle,
         deleteCircle:deleteCircle,
-        setOutputId:setOutputId
+        setOutputId:setOutputId,
+        vertexPolygonVisibility:vertexPolygonVisibility,
+        circlePolygonVisibility:circlePolygonVisibility,
     };
 })();

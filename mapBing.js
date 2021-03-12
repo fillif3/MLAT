@@ -24,6 +24,12 @@ var mapModule = (function() {
     var _circlePolygon=null;
     var _outputId='';
     var _progressBarId = null;
+    var _edges=null;
+    var _latitudePrecision = 0;
+    var _longitudePrecision = 0;
+    var _currentLatitude=0;
+    var _currentLongitude = 0;
+    var _step=0;
 
     function setProgressBarId(progressBarId){
         _progressBarId=progressBarId
@@ -238,6 +244,9 @@ var mapModule = (function() {
     function calculateVDOP(lat_res,lon_res,altitude,base_station,isCircle){
         _clearVDOP();
 
+        if (isCircle) _circlePolygon.setOptions({visible:true});
+        else _vertexPolygon.setOptions({visible:false});
+        _step = 10;//Math.floor(lat_res/10+1);
 
         base_station--;
         var newStationArray = [];
@@ -254,41 +263,61 @@ var mapModule = (function() {
         if ((_vertexArray.length<3)&&(!isCircle)) return null;
         if ((_circlePolygon==null)&&(isCircle)) return null;
         console.log(isCircle);
-        var edges = _getPolygonEdgeValues(isCircle);
+        _edges = _getPolygonEdgeValues(isCircle);
         //console.log(edges);
-        var latitudePrecision = (edges.get('max_latitude') - edges.get('min_latitude'))/lat_res;
-        var longitudePrecision = (edges.get('max_longitude') - edges.get('min_longitude'))/lon_res;
-        var currentLatitude= edges.get('min_latitude');
-        var n = performance.now();
-        while (currentLatitude<edges.get('max_latitude')){
-            var currentLongitude= edges.get('min_longitude');
-            while (currentLongitude<edges.get('max_longitude')){
-                var locationArray = _getPixelLocationArray(currentLatitude,currentLongitude,latitudePrecision,longitudePrecision);
+        _latitudePrecision = (_edges.get('max_latitude') - _edges.get('min_latitude'))/lat_res;
+        _longitudePrecision = (_edges.get('max_longitude') - _edges.get('min_longitude'))/lon_res;
+        _currentLatitude= _edges.get('min_latitude');
+        //var n = performance.now();
 
-                if (_checkIfPointInsidePolygon(currentLatitude,currentLongitude,isCircle)){
+        calculateVDOPWithTimeOUT(newStationArray,altitude,base_station,isCircle);
+        return 0;
+    }
+
+    function calculateVDOPWithTimeOUT(newStationArray,altitude,base_station,isCircle){
+
+        _currentLongitude= _edges.get('min_longitude');
+        for (let i=0;i<_step;++i) {
+            _currentLongitude= _edges.get('min_longitude');
+            while (_currentLongitude < _edges.get('max_longitude')) {
+                var locationArray = _getPixelLocationArray(_currentLatitude, _currentLongitude, _latitudePrecision, _longitudePrecision);
+
+                if (_checkIfPointInsidePolygon(_currentLatitude, _currentLongitude, isCircle)) {
                     //console.log('tutaj');
                     //console.log('jestem tu');
-                    var color =_computeColorBasedOnVDOP(currentLatitude,currentLongitude,altitude,base_station,newStationArray);
+                    var color = _computeColorBasedOnVDOP(_currentLatitude, _currentLongitude, altitude, base_station, newStationArray);
                     //console.log(color);
                     //throw 'kniec';
                     //console.log('jestem tu2');
-                    var pixel = new Microsoft.Maps.Polygon(locationArray,{strokeThickness:0,fillColor:color});
-                    Microsoft.Maps.Events.addHandler(pixel,"mouseover", function (e) { _showVDOP(e); } );
+                    var pixel = new Microsoft.Maps.Polygon(locationArray, {strokeThickness: 0, fillColor: color});
+                    Microsoft.Maps.Events.addHandler(pixel, "mouseover", function (e) {
+                        _showVDOP(e);
+                    });
                     _MAP_REFERENCE.entities.push(pixel);
                     _VDOPPixels.push(pixel);
                 }
-                currentLongitude+=longitudePrecision;
+                _currentLongitude += _longitudePrecision;
             }
-            currentLatitude+=latitudePrecision;
+            _currentLatitude += _latitudePrecision;
         }
 
-        var n2 = performance.now();
-        console.log(n2-n,'czas');
-        console.log(n,'czas');
-        console.log(n2,'czas');
-        if (_vertexPolygon!=null) _vertexPolygon.setOptions({visible:false});
-        if (_circlePolygon!=null) _circlePolygon.setOptions({visible:false});
-        return 0;
+
+        if (_currentLatitude<_edges.get('max_latitude')) setTimeout(function() {
+            calculateVDOPWithTimeOUT(newStationArray,altitude,base_station,isCircle);
+        }, 1000)
+        else{
+            if (_vertexPolygon!=null) _vertexPolygon.setOptions({visible:false});
+            if (_circlePolygon!=null) _circlePolygon.setOptions({visible:false});
+        }
+
+
+
+
+        //var n2 = performance.now();
+        //console.log(n2-n,'czas');
+        //console.log(n,'czas');
+        //console.log(n2,'czas');
+
     }
 
     function _showVDOP(e){

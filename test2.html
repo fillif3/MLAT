@@ -127,31 +127,37 @@
             <div class = "hidden" id="addationalParametersDiv">
                 <div >
                     <div class="halfWidthDivLeft">
-                        <label class="halfWidthDivLeft">Latitude resolution:</label>
-                        <input class="halfWidthDivLeft" id = "latitudeResolutionInput"type="text" value="100" maxlength="10" size="10">
+                        <label class="halfWidthDivLeft fullHeight">Latitude resolution:</label>
+                        <input class="halfWidthDivLeft fullHeight" id = "latitudeResolutionInput"type="text" value="100" maxlength="10" size="10">
                     </div>
                     <div class="halfWidthDivLeft">
-                        <label class="halfWidthDivLeft" >Longitude resolution:</label>
-                        <input class="halfWidthDivLeft" id = "longitudeResolutionInput"type="text"  value="100" maxlength="10" size="10">
+                        <label class="halfWidthDivLeft fullHeight" >Longitude resolution:</label>
+                        <input class="halfWidthDivLeft fullHeight" id = "longitudeResolutionInput"type="text"  value="100" maxlength="10" size="10">
                     </div>
+                    <div style="clear:both;"></div>
+
                 </div>
                 <div>
                     <div class="halfWidthDivLeft">
-                        <label class="halfWidthDivLeft" >Altitude (meters):</label>
-                        <input class="halfWidthDivLeft" id = "altitudeInput"type="text"  value="1000" maxlength="10" size="10">
+                        <label class="halfWidthDivLeft fullHeight" >Altitude (meters):</label>
+                        <input class="halfWidthDivLeft fullHeight" id = "altitudeInput"type="text"  value="1000" maxlength="10" size="10">
                     </div>
                     <div  class="halfWidthDivLeft">
                         <label class="halfWidthDivLeft" >Select base station:</label>
-                        <select class="halfWidthDivLeft" id="selectStationList">
+                        <select class="halfWidthDivLeft" id="selectStationList"  maxlength="10" >
                         <option value=0>Best station</option>
                         </select>
                     </div>
+                    <div style="clear:both;"></div>
+
                 </div>
                 <div>
                     <div class="halfWidthDivLeft">
                         <label class="halfWidthDivLeft" >Do you want to use more complex polygon?:</label>
                         <input type="checkbox" value=false onclick="togglePolygon(this)" id="polygonCheckBox" >
                     </div>
+                    <div style="clear:both;"></div>
+
                 </div>
             </div>
             <div id="calculateButton">
@@ -164,6 +170,9 @@
 
 
     </div>
+    <div id="myProgress" class="hidden" ><!-- class="hidden"-->
+        <div id="myBar"></div>
+    </div>
     <div id="myMap" ></div>
     <div id = "PanelVDOP">
         <label >Station measurment error (ns):</label>
@@ -173,6 +182,7 @@
         <label >Localization measurment error (m):</label>
         <input id = "localizationMeasurmentErrorInput" readonly type="text"  maxlength="10" size="10">
     </div>
+
     <div id="popUp" >
         <div class="bigCenteredText">
             Select parameters

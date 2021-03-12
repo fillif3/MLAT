@@ -1,3 +1,14 @@
+function testFunction(){
+    setTimeout(() => console.log('first'), 100);
+    const date = new Date();
+    while (new Date() - date < 50) {}
+    setTimeout(() => console.log('second'), 70);
+
+}
+
+function test2(){
+    alert('przed');
+}
 
 function getActiveStations(){
     var table = document.getElementById("stationTable");
@@ -14,7 +25,7 @@ function GetMap()
 
     mapModule.setMap(map);
     mapModule.setOutputId('VDOPInput');
-
+    mapModule.setProgressBarId('myBar')
 
 
     //addEventToMap('Vertex');
@@ -321,12 +332,15 @@ function editPin(loc,index,tableId,alt,name){
 }
 
 function calculateVDOP(){
-    var result=mapModule.calculateVDOP( parseFloat(document.getElementById('latitudeResolutionInput').value),
+    var barDiv = document.getElementById('myProgress');
+    barDiv.style.display='block';
+    var result= mapModule.calculateVDOP( parseFloat(document.getElementById('latitudeResolutionInput').value),
         parseFloat(document.getElementById('longitudeResolutionInput').value),
             parseFloat(document.getElementById('altitudeInput').value),
     document.getElementById('selectStationList').value,
         !document.getElementById('polygonCheckBox').checked)
     if (result!=null) document.getElementById('PanelVDOP').style.display = "block";
+    barDiv.style.display='none';
 }
 
 function addNewRowToTable(idOfTable,indexOfRow,content,buttonDescription,buttonDescription2,checkBoxDescription) {

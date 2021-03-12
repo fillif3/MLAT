@@ -1,10 +1,27 @@
+#myProgress {
+  position: fixed;
+  width: 40%;
+  background-color: #ddd;
+  z-index: 100000;
+  top: 30%;
+  left: 30%;
+}
+
+#myBar {
+  width: 1%;
+  height: 30px;
+  background-color: #4CAF50;
+}
+
 #myPanel {
   position:fixed;
-  width:40%;
+  width:20%;
   min-width:200px;
   //height:100%;
   background-color: white;
   z-index: 100;
+  overflow: auto;
+  max-height: 100vh;
 }
 
 #myMap {
@@ -97,9 +114,12 @@
   text-align: center;
 }
 
+.fullHeight{
+  height: 100%;
+}
 
 .halfWidthDivLeft {
-  width: 45%;
+  width: 50%;
   float: left;
 }
 

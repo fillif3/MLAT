@@ -23,6 +23,11 @@ var mapModule = (function() {
     var _circlePin=null;
     var _circlePolygon=null;
     var _outputId='';
+    var _progressBarId = null;
+
+    function setProgressBarId(progressBarId){
+        _progressBarId=progressBarId
+    }
 
     function getIndexOfVertex(pin){
         for (var i=0;i<_vertexArray.length;++i){
@@ -263,7 +268,7 @@ var mapModule = (function() {
                 if (_checkIfPointInsidePolygon(currentLatitude,currentLongitude,isCircle)){
                     //console.log('tutaj');
                     //console.log('jestem tu');
-                    var color = _computeColorBasedOnVDOP(currentLatitude,currentLongitude,altitude,base_station,newStationArray);
+                    var color =_computeColorBasedOnVDOP(currentLatitude,currentLongitude,altitude,base_station,newStationArray);
                     //console.log(color);
                     //throw 'kniec';
                     //console.log('jestem tu2');
@@ -661,5 +666,6 @@ var mapModule = (function() {
         changeStateOfStation:changeStateOfStation,
         getIndexOfVertex:getIndexOfVertex,
         getIndexOfStation:getIndexOfStation,
+        setProgressBarId:setProgressBarId,
     };
 })();

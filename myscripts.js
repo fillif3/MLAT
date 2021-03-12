@@ -11,7 +11,6 @@ function getActiveStations(){
 function GetMap()
 {
     var map = new Microsoft.Maps.Map('#myMap')
-    //alert("This is test box!");
 
     mapModule.setMap(map);
     mapModule.setOutputId('VDOPInput');
@@ -93,7 +92,7 @@ function addNewVertex(e){
         //alt = parseFloat(alt);
 
     }
-    mapModule.addVertex(loc);
+    mapModule.addVertex(loc,function (e) { changeVertexInTable(e); });
     var table = document.getElementById("vertexTable");
     var newRow = table.rows.length;
 
@@ -104,6 +103,36 @@ function addNewVertex(e){
         '<button type="button" onclick=deleteRowAndUpdateTable(this,"Vertex") class="buttonSkip fullWidth">Delete</button>',null);
     hideMassageWindow('lat_lon_alt');
 }
+
+function changeVertexInTable(e){
+    var pin = e.target;
+    var loc = pin.getLocation();
+    var index = mapModule.getIndexOfVertex(pin);
+    var table = document.getElementById("vertexTable");
+    var row = table.rows[index+1];
+    row.cells[1].innerHTML = loc.latitude;
+    row.cells[2].innerHTML = loc.longitude;
+}
+
+function changeStationInTable(e){
+    var pin = e.target;
+    var loc = pin.getLocation();
+    var index = mapModule.getIndexOfStation(pin);
+    var table = document.getElementById("stationTable");
+    var row = table.rows[index+1];
+    row.cells[1].innerHTML = loc.latitude;
+    row.cells[2].innerHTML = loc.longitude;
+}
+
+function changeCircleInTable(e){
+    var pin = e.target;
+    var loc = pin.getLocation();
+    var table = document.getElementById("circleOfInterest");
+    var row = table.rows[2];
+    row.cells[0].innerHTML = loc.latitude;
+    row.cells[1].innerHTML = loc.longitude;
+}
+
 
 function addNewCircle(e){
     if (e != null) {
@@ -132,7 +161,7 @@ function addNewCircle(e){
         //alt = parseFloat(alt);
 
     }
-    mapModule.addCircle(loc,2000);
+    mapModule.addCircle(loc,2000,changeCircleInTable);
     var table = document.getElementById("circleOfInterest");
     var newRow = table.rows.length;
 
@@ -144,6 +173,8 @@ function addNewCircle(e){
     hideMassageWindow('lat_lon_alt');
     if (newRow>2) table.rows[3].parentNode.removeChild(table.rows[2]);
 }
+
+
 
 function addNewStation(e){
     if (e != null) {
@@ -171,7 +202,7 @@ function addNewStation(e){
         alt = parseFloat(alt);
 
     }
-    mapModule.addStation(loc,alt)
+    mapModule.addStation(loc,alt,changeStationInTable)
     var table = document.getElementById("stationTable");
     var newRow = table.rows.length;
     var content = [newRow,lat,lon,alt ,"Station"] ;
@@ -187,9 +218,10 @@ function changeStateofStation(checker){
     var state = checker.checked;
     var row = checker.parentNode.parentNode;
     var index = row.cells[0].innerHTML-1;
-    mapModule.changeStateOfStation(index,state)
-    //alert(state);
-    //alert(index);
+    mapModule.changeStateOfStation(index,state);
+    if (state) addStationToList();
+    else removeStationToList();
+
 
 }
 
@@ -216,24 +248,29 @@ function deleteRowAndUpdateTable(cell,where){
     //console.log(row)
     //console.log(table.rows)
     row.parentNode.removeChild(row);
+    if (tableId == "circleOfInterest") {
+        deletePin(null,tableId);
+        return null;
+    }
     // error -> need to find a way to get row and dleete it
     //row_index = table.rows.indexOf(row)
     //table.deleteRow(indexOfRow)
     var numberOfRows = table.rows.length;
     var flag = true;
-    for (var i = 2;i<numberOfRows;++i)
+
+    for (var i = 1;i<numberOfRows;++i)
     {
         var cell = table.rows[i].cells[0];
-        if ((flag) && (cell.innerHTML == (i))){
+        if ((flag) && (cell.innerHTML == (i+1))){
             flag = false;
-            deletePin(i-2,tableId);
+            deletePin(i-1,tableId);
         }
         cell.innerHTML = i;
 
     }
 
-    if (flag) deletePin(numberOfRows-2,tableId);
-    if (where=='station') removeStationToList();
+    if (flag) deletePin(numberOfRows-1,tableId);
+    if (where=='station') if (row.cells[5].firstChild.checked) removeStationToList();
 }
 
 function editRowAndUpdateTable(cell){ //To Do
@@ -247,7 +284,7 @@ function editRowAndUpdateTable(cell){ //To Do
         var lon = row.cells[1].innerHTML;
         var radius = row.cells[2].innerHTML;
         var loc = new Microsoft.Maps.Location(parseFloat(lat),parseFloat(lon));
-        mapModule.addCircle(loc,radius);
+        mapModule.addCircle(loc,radius,changeCircleInTable);
         document.getElementById('PanelVDOP').style.display = "none";
         return null;
     }
@@ -278,8 +315,8 @@ function deletePin(index,tableId){
 }
 
 function editPin(loc,index,tableId,alt,name){
-    if (tableId=="stationTable") mapModule.EditStation(loc,parseFloat(alt),index,name);
-    if (tableId=="vertexTable") mapModule.EditVertex(loc,index);
+    if (tableId=="stationTable") mapModule.EditStation(loc,parseFloat(alt),index,name,changeStationInTable);
+    if (tableId=="vertexTable") mapModule.EditVertex(loc,index,changeVertexInTable);
 
 }
 

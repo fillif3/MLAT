@@ -24,6 +24,20 @@ var mapModule = (function() {
     var _circlePolygon=null;
     var _outputId='';
 
+    function getIndexOfVertex(pin){
+        for (var i=0;i<_vertexArray.length;++i){
+            if (pin===_vertexArray[i]) return i;
+        }
+        return null;
+    }
+
+    function getIndexOfStation(pin){
+        for (var i=0;i<_stationArray.length;++i){
+            if (pin===_stationArray[i]) return i;
+        }
+        return null;
+    }
+
     function setOutputId(val){
 
         _outputId=val;
@@ -227,7 +241,7 @@ var mapModule = (function() {
                 if (_ifStationActive[i]) newStationArray.push(_stationArray[i]);
             }
         } else newStationArray = _stationArray;
-        //alert(newStationArray.length)
+
 
 
 
@@ -448,14 +462,16 @@ var mapModule = (function() {
         else _stationArray[index].setOptions({color:'red'});
     }
 
-    function EditStation(loc,alt,index,name){
+    function EditStation(loc,alt,index,name,func){
         if (_ifStationActive[index]) var color='green';
         else color = 'red';
         var newPin = new Microsoft.Maps.Pushpin(loc, {
-            title: name, color:color
+            title: name, color:color,draggable:true
             // subTitle: number.toString()
         });
         _MAP_REFERENCE.entities.push(newPin);
+        Microsoft.Maps.Events.addHandler(newPin,'dragend',  function (e) { _changeStationPosition(e); } );
+        if (func!=null) Microsoft.Maps.Events.addHandler(newPin,'dragend',  function (e) { func(e); } );
         var oldPin = _stationArray[index];
 
         _MAP_REFERENCE.entities.remove(oldPin);
@@ -465,12 +481,15 @@ var mapModule = (function() {
 
     }
 
-    function addStation(loc,alt){
+    function addStation(loc,alt,func){
         //var number = _vertexArray.length+1
         var pin = new Microsoft.Maps.Pushpin(loc, {
-            title: 'Station',color: 'green',
+            title: 'Station',color: 'green',draggable:true
             // subTitle: number.toString()
         });
+        Microsoft.Maps.Events.addHandler(pin,'dragend',  function (e) { _changeStationPosition(e); } );
+        if (func!=null) Microsoft.Maps.Events.addHandler(pin,'dragend',  function (e) { func(e); } );
+
         _MAP_REFERENCE.entities.push(pin);
         _stationArray.push(pin);
         _ifStationActive.push(true);
@@ -485,17 +504,23 @@ var mapModule = (function() {
         _MAP_REFERENCE.entities.remove(pin);
     }
 
+    function _changeStationPosition(e){
+
+    }
+
     //  Vertexes functions
 
     function vertexPolygonVisibility(flag){
         if (_vertexPolygon!=null) _vertexPolygon.setOptions({visible:flag});
     }
 
-    function EditVertex(loc,index){
+    function EditVertex(loc,index,func){
         var newPin = new Microsoft.Maps.Pushpin(loc, {
-            title: 'Vertex',
+            title: 'Vertex',draggable:true
             // subTitle: number.toString()
         });
+        Microsoft.Maps.Events.addHandler(newPin,'dragend',  function (e) { _changeVertexPosition(e); } );
+        if (func!=null) Microsoft.Maps.Events.addHandler(newPin,'dragend',  function (e) { func(e); } );
         _MAP_REFERENCE.entities.push(newPin);
         var oldPin = _vertexArray[index];
         _MAP_REFERENCE.entities.remove(oldPin);
@@ -503,12 +528,15 @@ var mapModule = (function() {
         _updateVertexPolygon();
     }
 
-    function addVertex(loc){
+    function addVertex(loc,func){
         //var number = _vertexArray.length+1
         var pin = new Microsoft.Maps.Pushpin(loc, {
-            title: 'Vertex',
+            title: 'Vertex',draggable:true
             // subTitle: number.toString()
         });
+        Microsoft.Maps.Events.addHandler(pin,'dragend',  function (e) { _changeVertexPosition(e); } );
+        if (func!=null) Microsoft.Maps.Events.addHandler(pin,'dragend',  function (e) { func(e); } );
+
         _MAP_REFERENCE.entities.push(pin);
         _vertexArray.push(pin);
         //console.log(_vertexArray);
@@ -519,6 +547,10 @@ var mapModule = (function() {
         var pin = _vertexArray[index];
         _vertexArray.splice(index,1)
         _MAP_REFERENCE.entities.remove(pin);
+        _updateVertexPolygon();
+    }
+
+    function _changeVertexPosition(e){
         _updateVertexPolygon();
     }
 
@@ -548,14 +580,17 @@ var mapModule = (function() {
     }
 
 
-    function addCircle(loc,radius){
+    function addCircle(loc,radius,func){
         _clearVDOP();
+
         //console.log('tutaj');
         //var number = _vertexArray.length+1
         var pin = new Microsoft.Maps.Pushpin(loc, {
-            title: 'Cricle',
+            title: 'Cricle',draggable:true
             // subTitle: number.toString()
         });
+        Microsoft.Maps.Events.addHandler(pin,'dragend',  function (e) { _changeCirclePosition(e); } );
+        if (func!=null) Microsoft.Maps.Events.addHandler(pin,'dragend',  function (e) { func(e); } );
         if (_circlePin !=null) _MAP_REFERENCE.entities.remove(_circlePin);
         _MAP_REFERENCE.entities.push(pin);
         _circleRadius=radius;
@@ -563,6 +598,12 @@ var mapModule = (function() {
         _calculateVertexesOfCircle(loc.latitude,loc.longitude,radius);
         //console.log(_vertexArray);
         //_updateVertexPolygon();
+    }
+
+    function _changeCirclePosition(e){
+        var pin = e.target;
+        var loc = pin.getLocation();
+        _calculateVertexesOfCircle(loc.latitude,loc.longitude,_circleRadius);
     }
 
     function deleteCircle(){
@@ -618,5 +659,7 @@ var mapModule = (function() {
         vertexPolygonVisibility:vertexPolygonVisibility,
         circlePolygonVisibility:circlePolygonVisibility,
         changeStateOfStation:changeStateOfStation,
+        getIndexOfVertex:getIndexOfVertex,
+        getIndexOfStation:getIndexOfStation,
     };
 })();

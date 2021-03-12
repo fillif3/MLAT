@@ -13,7 +13,8 @@ var mapModule = (function() {
     var _MAP_REFERENCE = '';
     var _handlers = new Map();
     var _stationArray =[];
-    var _stationAltitudeArray=[]
+    var _stationAltitudeArray=[];
+    var _ifStationActive=[]
     var _vertexArray=[];
     var _vertexPolygon = null;
     var _VDOPPixels = [];
@@ -200,11 +201,11 @@ var mapModule = (function() {
     }
 
 
-    function _computeColorBasedOnVDOP(currentLatitude,currentLongitude,altitude,base_station){
+    function _computeColorBasedOnVDOP(currentLatitude,currentLongitude,altitude,base_station,newStationArray){
         var position = [0,0,0];
         var anchors=[];
-        for (var i=0;i<_stationArray.length;++i){
-            var loc = _stationArray[i].getLocation();
+        for (var i=0;i<newStationArray.length;++i){
+            var loc = newStationArray[i].getLocation();
             //throw 'Parameter is not a number!';
             anchors.push(_geodetic2enu(loc.latitude,loc.longitude,_stationAltitudeArray[i],currentLatitude,currentLongitude,altitude));
         }
@@ -217,11 +218,20 @@ var mapModule = (function() {
 
     function calculateVDOP(lat_res,lon_res,altitude,base_station,isCircle){
         _clearVDOP();
+
+
         base_station--;
+        var newStationArray = [];
+        if (_ifStationActive!=null){
+            for (var i=0;i<_ifStationActive.length;++i){
+                if (_ifStationActive[i]) newStationArray.push(_stationArray[i]);
+            }
+        } else newStationArray = _stationArray;
+        //alert(newStationArray.length)
 
 
 
-        if (_stationArray.length<3) return null;
+        if (newStationArray.length<3) return null;
         if ((_vertexArray.length<3)&&(!isCircle)) return null;
         if ((_circlePolygon==null)&&(isCircle)) return null;
         console.log(isCircle);
@@ -239,7 +249,7 @@ var mapModule = (function() {
                 if (_checkIfPointInsidePolygon(currentLatitude,currentLongitude,isCircle)){
                     //console.log('tutaj');
                     //console.log('jestem tu');
-                    var color = _computeColorBasedOnVDOP(currentLatitude,currentLongitude,altitude,base_station);
+                    var color = _computeColorBasedOnVDOP(currentLatitude,currentLongitude,altitude,base_station,newStationArray);
                     //console.log(color);
                     //throw 'kniec';
                     //console.log('jestem tu2');
@@ -431,13 +441,23 @@ var mapModule = (function() {
 
     // station functions
 
-    function EditStation(loc,alt,index){
+    function changeStateOfStation(index,state){
+        if (index>=_ifStationActive.length) return null;
+        _ifStationActive[index] = state;
+        if (state) _stationArray[index].setOptions({color:'green'});
+        else _stationArray[index].setOptions({color:'red'});
+    }
+
+    function EditStation(loc,alt,index,name){
+        if (_ifStationActive[index]) var color='green';
+        else color = 'red';
         var newPin = new Microsoft.Maps.Pushpin(loc, {
-            title: 'Station',
+            title: name, color:color
             // subTitle: number.toString()
         });
         _MAP_REFERENCE.entities.push(newPin);
         var oldPin = _stationArray[index];
+
         _MAP_REFERENCE.entities.remove(oldPin);
         _stationArray.splice(index,1,newPin);
         _stationAltitudeArray.splice(index,1,alt);
@@ -448,11 +468,12 @@ var mapModule = (function() {
     function addStation(loc,alt){
         //var number = _vertexArray.length+1
         var pin = new Microsoft.Maps.Pushpin(loc, {
-            title: 'Station',
+            title: 'Station',color: 'green',
             // subTitle: number.toString()
         });
         _MAP_REFERENCE.entities.push(pin);
         _stationArray.push(pin);
+        _ifStationActive.push(true);
         //console.log(alt);
         _stationAltitudeArray.push(alt);
     }
@@ -596,5 +617,6 @@ var mapModule = (function() {
         setOutputId:setOutputId,
         vertexPolygonVisibility:vertexPolygonVisibility,
         circlePolygonVisibility:circlePolygonVisibility,
+        changeStateOfStation:changeStateOfStation,
     };
 })();

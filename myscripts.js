@@ -1,10 +1,12 @@
 
-function testFunction(test){
-    var A=[[1,2],[3,4]];
-    var B=[[1,2],[3,4]];
-    var result=math.multiply(A,B);
-    console.log(result);
-    alert("This is test box!");
+function getActiveStations(){
+    var table = document.getElementById("stationTable");
+    var numberOfRows = table.rows.length;
+    activeStations=[]
+    for (var i=1;i<numberOfRows;++i){
+        activeStations.push(table.rows[i].cells[5].firstChild.checked);
+    }
+    return activeStations;
 }
 function GetMap()
 {
@@ -95,11 +97,11 @@ function addNewVertex(e){
     var table = document.getElementById("vertexTable");
     var newRow = table.rows.length;
 
-    var content = [newRow-1,lat,lon ] ;
+    var content = [newRow,lat,lon ] ;
     //console.log(content);
     addNewRowToTable("vertexTable",newRow,content,
     '<button type="button" onclick=editRowAndUpdateTable(this,"Vertex") class="buttonSkip fullWidth">Edit</button>',
-        '<button type="button" onclick=deleteRowAndUpdateTable(this,"Vertex") class="buttonSkip fullWidth">Delete</button>');
+        '<button type="button" onclick=deleteRowAndUpdateTable(this,"Vertex") class="buttonSkip fullWidth">Delete</button>',null);
     hideMassageWindow('lat_lon_alt');
 }
 
@@ -138,7 +140,7 @@ function addNewCircle(e){
     //console.log(content);
     addNewRowToTable("circleOfInterest",newRow,content,
         '<button type="button" onclick=editRowAndUpdateTable(this,"Circle") class="buttonSkip fullWidth">Edit</button>',
-        '<button type="button" onclick=deleteRowAndUpdateTable(this,"Circle") class="buttonSkip fullWidth">Delete</button>');
+        '<button type="button" onclick=deleteRowAndUpdateTable(this,"Circle") class="buttonSkip fullWidth">Delete</button>',null);
     hideMassageWindow('lat_lon_alt');
     if (newRow>2) table.rows[3].parentNode.removeChild(table.rows[2]);
 }
@@ -172,12 +174,23 @@ function addNewStation(e){
     mapModule.addStation(loc,alt)
     var table = document.getElementById("stationTable");
     var newRow = table.rows.length;
-    var content = [newRow-1,lat,lon,alt ] ;
+    var content = [newRow,lat,lon,alt ,"Station"] ;
     addNewRowToTable("stationTable",newRow,content,
     '<button type="button" onclick=editRowAndUpdateTable(this,"station") class="buttonSkip fullWidth">Edit</button>',
-        '<button type="button" onclick=deleteRowAndUpdateTable(this,"station") class="buttonSkip fullWidth">Delete</button>');
+        '<button type="button" onclick=deleteRowAndUpdateTable(this,"station") class="buttonSkip fullWidth">Delete</button>',
+        '<input type="checkbox" onchange="changeStateofStation(this)" id="scales" name="scales" checked>');
     hideMassageWindow('lat_lon_alt');
     addStationToList();
+}
+
+function changeStateofStation(checker){
+    var state = checker.checked;
+    var row = checker.parentNode.parentNode;
+    var index = row.cells[0].innerHTML-1;
+    mapModule.changeStateOfStation(index,state)
+    //alert(state);
+    //alert(index);
+
 }
 
 function addStationToList(){
@@ -215,7 +228,7 @@ function deleteRowAndUpdateTable(cell,where){
             flag = false;
             deletePin(i-2,tableId);
         }
-        cell.innerHTML = i-1;
+        cell.innerHTML = i;
 
     }
 
@@ -243,9 +256,10 @@ function editRowAndUpdateTable(cell){ //To Do
     var lat = row.cells[1].innerHTML;
     var lon = row.cells[2].innerHTML;
     var alt = row.cells[3].innerHTML;
+    var name = row.cells[4].innerHTML;
     //console.log(lat);
     var loc = new Microsoft.Maps.Location(parseFloat(lat),parseFloat(lon));
-    editPin(loc,index,tableId,alt);
+    editPin(loc,index,tableId,alt,name);
 
 
     //console.log(row)
@@ -263,8 +277,8 @@ function deletePin(index,tableId){
 
 }
 
-function editPin(loc,index,tableId,alt){
-    if (tableId=="stationTable") mapModule.EditStation(loc,parseFloat(alt),index);
+function editPin(loc,index,tableId,alt,name){
+    if (tableId=="stationTable") mapModule.EditStation(loc,parseFloat(alt),index,name);
     if (tableId=="vertexTable") mapModule.EditVertex(loc,index);
 
 }
@@ -274,11 +288,11 @@ function calculateVDOP(){
         parseFloat(document.getElementById('longitudeResolutionInput').value),
             parseFloat(document.getElementById('altitudeInput').value),
     document.getElementById('selectStationList').value,
-        !document.getElementById('polygonCheckBox').checked);
+        !document.getElementById('polygonCheckBox').checked)
     if (result!=null) document.getElementById('PanelVDOP').style.display = "block";
 }
 
-function addNewRowToTable(idOfTable,indexOfRow,content,buttonDescription,buttonDescription2) {
+function addNewRowToTable(idOfTable,indexOfRow,content,buttonDescription,buttonDescription2,checkBoxDescription) {
     var table = document.getElementById(idOfTable);
     var row = table.insertRow(indexOfRow);
     for (var i = 0; i < content.length; ++i) {
@@ -286,10 +300,19 @@ function addNewRowToTable(idOfTable,indexOfRow,content,buttonDescription,buttonD
       cell.innerHTML = content[i];
       if ((i>0)||(idOfTable=='circleOfInterest')) cell.contentEditable = true;
     }
-    var cell = row.insertCell(content.length);
-    cell.innerHTML = buttonDescription;
-    cell = row.insertCell(content.length+1);
-    cell.innerHTML = buttonDescription2;
+    if (checkBoxDescription==null) {
+        var cell = row.insertCell(content.length);
+        cell.innerHTML = buttonDescription;
+        cell = row.insertCell(content.length + 1);
+        cell.innerHTML = buttonDescription2;
+    } else{
+        var cell = row.insertCell(content.length);
+        cell.innerHTML = checkBoxDescription;
+        var cell = row.insertCell(content.length+1);
+        cell.innerHTML = buttonDescription;
+        cell = row.insertCell(content.length + 2);
+        cell.innerHTML = buttonDescription2;
+    }
 
 }
 

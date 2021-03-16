@@ -9,6 +9,10 @@ var mapModule = (function() {
     //const _eccentricity = Math.sqrt(2 * _flattening - _flattening **2);
     const _meter_per_lat = 111320;
 
+    var _startTimeForDebugging=0;
+    var _endTimeForDebugging=0;
+    var _width =0;
+    var _widthStep=1;
 
     var _MAP_REFERENCE = '';
     var _handlers = new Map();
@@ -30,6 +34,16 @@ var mapModule = (function() {
     var _currentLatitude=0;
     var _currentLongitude = 0;
     var _step=0;
+    var _clearFunction=null;
+    var _blockFunction=null
+
+    function setBlockFunction(func){
+        _blockFunction=func;
+    }
+
+    function setClearFunction(func){
+        _clearFunction=func;
+    }
 
     function setProgressBarId(progressBarId){
         _progressBarId=progressBarId
@@ -241,13 +255,19 @@ var mapModule = (function() {
 
     }
 
-    function calculateVDOP(lat_res,lon_res,altitude,base_station,isCircle){
+    function calculateVDOP(lat_res,lon_res,altitude,base_station,isCircle,timeout){
+        _startTimeForDebugging=performance.now();
+
         _clearVDOP();
-
-        if (isCircle) _circlePolygon.setOptions({visible:true});
-        else _vertexPolygon.setOptions({visible:false});
-        _step = 10;//Math.floor(lat_res/10+1);
-
+        if ((_vertexArray.length<3)&&(!isCircle)) return null;
+        if ((_circlePolygon==null)&&(isCircle)) return null;
+        //if (isCircle) _circlePolygon.setOptions({visible:false});
+        //else _vertexPolygon.setOptions({visible:false});
+        if (timeout ==4) _step = 30;
+        else _step = 5;
+        //Math.floor(lat_res/10+1);
+        _width=0
+        _widthStep = 100*_step/lon_res;
         base_station--;
         var newStationArray = [];
         if (_ifStationActive!=null){
@@ -262,6 +282,7 @@ var mapModule = (function() {
         if (newStationArray.length<3) return null;
         if ((_vertexArray.length<3)&&(!isCircle)) return null;
         if ((_circlePolygon==null)&&(isCircle)) return null;
+        if (_blockFunction!=null) _blockFunction();
         console.log(isCircle);
         _edges = _getPolygonEdgeValues(isCircle);
         //console.log(edges);
@@ -270,11 +291,11 @@ var mapModule = (function() {
         _currentLatitude= _edges.get('min_latitude');
         //var n = performance.now();
 
-        calculateVDOPWithTimeOUT(newStationArray,altitude,base_station,isCircle);
+        calculateVDOPWithTimeOUT(newStationArray,altitude,base_station,isCircle,timeout);
         return 0;
     }
 
-    function calculateVDOPWithTimeOUT(newStationArray,altitude,base_station,isCircle){
+    function calculateVDOPWithTimeOUT(newStationArray,altitude,base_station,isCircle,timeout){
 
         _currentLongitude= _edges.get('min_longitude');
         for (let i=0;i<_step;++i) {
@@ -302,12 +323,22 @@ var mapModule = (function() {
         }
 
 
-        if (_currentLatitude<_edges.get('max_latitude')) setTimeout(function() {
-            calculateVDOPWithTimeOUT(newStationArray,altitude,base_station,isCircle);
-        }, 1000)
+        if (_currentLatitude<_edges.get('max_latitude')) {
+            setTimeout(function() {
+                calculateVDOPWithTimeOUT(newStationArray,altitude,base_station,isCircle);
+            }, timeout)
+            var barDiv = document.getElementById('myBar');
+            _width +=_widthStep;
+            barDiv.style.width = _width+'%';
+        }
+
         else{
             if (_vertexPolygon!=null) _vertexPolygon.setOptions({visible:false});
             if (_circlePolygon!=null) _circlePolygon.setOptions({visible:false});
+            _endTimeForDebugging = performance.now();
+            console.log("Call to doSomething took " + (_endTimeForDebugging-_startTimeForDebugging) + " milliseconds.");
+            if (_clearFunction!=null) _clearFunction();
+
         }
 
 
@@ -332,7 +363,7 @@ var mapModule = (function() {
         console.log(_VDOPValues);
         console.log(i);
         console.log(_outputId);
-        if (_outputId!=='') document.getElementById(_outputId).value = _VDOPValues[i-1];
+        if (_outputId!=='') document.getElementById(_outputId).value = _VDOPValues[i-1].toString().slice(0,7);
         getLocalizationMeasurmentError();
     }
 
@@ -546,11 +577,12 @@ var mapModule = (function() {
 
     function vertexPolygonVisibility(flag){
         if (_vertexPolygon!=null) _vertexPolygon.setOptions({visible:flag});
+        for (var i=0;i<_vertexArray.length;++i) _vertexArray[i].setOptions({visible:flag});
     }
 
     function EditVertex(loc,index,func){
         var newPin = new Microsoft.Maps.Pushpin(loc, {
-            title: 'Vertex',draggable:true
+            title: 'Vertex',draggable:true,icon:'pin.png'
             // subTitle: number.toString()
         });
         Microsoft.Maps.Events.addHandler(newPin,'dragend',  function (e) { _changeVertexPosition(e); } );
@@ -565,7 +597,7 @@ var mapModule = (function() {
     function addVertex(loc,func){
         //var number = _vertexArray.length+1
         var pin = new Microsoft.Maps.Pushpin(loc, {
-            title: 'Vertex',draggable:true
+            title: 'Vertex',draggable:true,icon:'pin.png'
             // subTitle: number.toString()
         });
         Microsoft.Maps.Events.addHandler(pin,'dragend',  function (e) { _changeVertexPosition(e); } );
@@ -591,7 +623,12 @@ var mapModule = (function() {
     // Circle functions
 
     function circlePolygonVisibility(flag){
-        if (_circlePolygon!=null) _circlePolygon.setOptions({visible:flag});
+        if (_circlePolygon!=null) {
+            _circlePolygon.setOptions({visible:flag});
+            _circlePin.setOptions({visible:flag});
+        }
+
+
     }
 
     function _calculateVertexesOfCircle(lat,lon,radius){
@@ -620,7 +657,7 @@ var mapModule = (function() {
         //console.log('tutaj');
         //var number = _vertexArray.length+1
         var pin = new Microsoft.Maps.Pushpin(loc, {
-            title: 'Cricle',draggable:true
+            title: 'Cricle',draggable:true,icon:'pin.png'
             // subTitle: number.toString()
         });
         Microsoft.Maps.Events.addHandler(pin,'dragend',  function (e) { _changeCirclePosition(e); } );
@@ -696,5 +733,7 @@ var mapModule = (function() {
         getIndexOfVertex:getIndexOfVertex,
         getIndexOfStation:getIndexOfStation,
         setProgressBarId:setProgressBarId,
+        setClearFunction:setClearFunction,
+        setBlockFunction:setBlockFunction,
     };
 })();

@@ -1,9 +1,42 @@
 function testFunction(){
-    setTimeout(() => console.log('first'), 100);
-    const date = new Date();
-    while (new Date() - date < 50) {}
-    setTimeout(() => console.log('second'), 70);
 
+    //document.getElementById('blocker').style.display='block';
+    var result= mapModule.calculateVDOP( parseFloat(document.getElementById('latitudeResolutionInput').value),
+        parseFloat(document.getElementById('longitudeResolutionInput').value),
+        parseFloat(document.getElementById('altitudeInput').value),
+        document.getElementById('selectStationList').value,
+        !document.getElementById('polygonCheckBox').checked,4)
+    if (result!=null) document.getElementById('PanelVDOP').style.display = "block";
+
+
+
+    //let div =
+    //    document.getElementById('myMap').firstChild;
+
+    // Use the html2canvas
+    // function to take a screenshot
+    // and append it
+    // to the output div
+    //html2canvas(div).then(function (canvas){showImage(canvas)});
+    //function (canvas) {
+       //     document
+       //         .getElementById('logo')
+       //         .appendChild(canvas);
+       // })
+    //console.log(canvas);
+
+}
+
+function showImage(canvas){
+//document.getElementById('logo').appendChild(canvas);
+    var panelDiv = document.getElementById('myPanel');
+    var barDiv = document.getElementById('myProgress');
+    var mapDiv = document.getElementById('myMap');
+    panelDiv.style.display='none';
+    barDiv.style.display='block';
+    mapDiv.style.display='none';
+    canvas.style.zIndex=10000000000;
+    document.body.appendChild(canvas);
 }
 
 function test2(){
@@ -25,12 +58,19 @@ function GetMap()
 
     mapModule.setMap(map);
     mapModule.setOutputId('VDOPInput');
-    mapModule.setProgressBarId('myBar')
+    mapModule.setProgressBarId('myBar');
+    mapModule.setClearFunction(restoreVisuals);
+    mapModule.setBlockFunction(hideVusuals)
+
 
 
     //addEventToMap('Vertex');
     //Microsoft.Maps.Events.addHandler(map, 'click', function (e) { addNewStation(e); });
         //Add your post map load code here.
+}
+
+function showLogo(){
+    document.getElementById('logo').style.display='block';
 }
 
 /*if (!Array.prototype.indexOf)
@@ -97,6 +137,11 @@ function addNewVertex(e){
         var lon = document.getElementById('longInputPopUp').value;
         // TO DO: add checking if it is a number
         lon = parseFloat(lon);
+        if (!doesArrayContainOnlyNumbers([lat,lon])){
+            alert('The inputs must be numeric');
+            return null;
+        }
+
         loc = new Microsoft.Maps.Location(lat,lon);
         //var alt = document.getElementById('altInputPopUp').value;
         // TO DO: add checking if it is a number
@@ -208,9 +253,16 @@ function addNewStation(e){
         // TO DO: add checking if it is a number
         lon = parseFloat(lon);
         var alt = document.getElementById('altInputPopUp').value;
+        alt = parseFloat(alt);
+        if (!doesArrayContainOnlyNumbers([lat,lon,alt])){
+            alert('The inputs must be numeric');
+            return null;
+        }
+
         loc =new Microsoft.Maps.Location(lat,lon);
         // TO DO: add checking if it is a number
-        alt = parseFloat(alt);
+
+
 
     }
     mapModule.addStation(loc,alt,changeStationInTable)
@@ -242,6 +294,7 @@ function addStationToList(){
     opt.value = list.length;
     opt.innerHTML = list.length;
     list.appendChild(opt);
+    if (list.length == 2) list.value=1;
 }
 
 function removeStationToList(){
@@ -294,6 +347,11 @@ function editRowAndUpdateTable(cell){ //To Do
         var lat = row.cells[0].innerHTML;
         var lon = row.cells[1].innerHTML;
         var radius = row.cells[2].innerHTML;
+        if (!doesArrayContainOnlyNumbers([lat,lon,radius])){
+            alert('The inputs must be numeric');
+            return null;
+        }
+
         var loc = new Microsoft.Maps.Location(parseFloat(lat),parseFloat(lon));
         mapModule.addCircle(loc,radius,changeCircleInTable);
         document.getElementById('PanelVDOP').style.display = "none";
@@ -304,6 +362,10 @@ function editRowAndUpdateTable(cell){ //To Do
     var lat = row.cells[1].innerHTML;
     var lon = row.cells[2].innerHTML;
     var alt = row.cells[3].innerHTML;
+    if (!doesArrayContainOnlyNumbers([lat,lon,alt])){
+        alert('The inputs must be numeric');
+        return null;
+    }
     var name = row.cells[4].innerHTML;
     //console.log(lat);
     var loc = new Microsoft.Maps.Location(parseFloat(lat),parseFloat(lon));
@@ -331,16 +393,42 @@ function editPin(loc,index,tableId,alt,name){
 
 }
 
+function restoreVisuals(){
+    document.getElementById('blocker').style.display='none';
+}
+
+function hideVusuals(){
+    document.getElementById('blocker').style.display='block';
+}
+
+function doesArrayContainOnlyNumbers(arr){
+    for (var i=0;i<arr.length;++i) if (isNaN(arr[i])) {console.log(i);return false;}
+    console.log('tu');
+    return true;
+}
+
+
 function calculateVDOP(){
-    var barDiv = document.getElementById('myProgress');
-    barDiv.style.display='block';
-    var result= mapModule.calculateVDOP( parseFloat(document.getElementById('latitudeResolutionInput').value),
-        parseFloat(document.getElementById('longitudeResolutionInput').value),
-            parseFloat(document.getElementById('altitudeInput').value),
-    document.getElementById('selectStationList').value,
-        !document.getElementById('polygonCheckBox').checked)
+    var lat = document.getElementById('latitudeResolutionInput').value;
+    var lon =document.getElementById('longitudeResolutionInput').value;
+    var alt = document.getElementById('altitudeInput').value
+
+    if (!doesArrayContainOnlyNumbers([lat,lon,alt])){
+        alert('The inputs must be numeric');
+        return null;
+    }
+
+    var result= mapModule.calculateVDOP( parseFloat(lat),
+        parseFloat(lon),
+        parseFloat(alt),
+        document.getElementById('selectStationList').value,
+        !document.getElementById('polygonCheckBox').checked,4)
     if (result!=null) document.getElementById('PanelVDOP').style.display = "block";
-    barDiv.style.display='none';
+
+    //barDiv.style.display='none';
+
+
+
 }
 
 function addNewRowToTable(idOfTable,indexOfRow,content,buttonDescription,buttonDescription2,checkBoxDescription) {
@@ -421,7 +509,7 @@ function getLocalizationMeasurmentError(cell){
     var localization_error = t_measurment_error*VDOP*0.3;
     console.log(t_measurment_error,VDOP,localization_error);
     var out = document.getElementById('localizationMeasurmentErrorInput');
-    out.value = localization_error;
+    out.value = localization_error.toString().slice(0,7);
 
 }
 

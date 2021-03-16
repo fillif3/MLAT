@@ -10,17 +10,23 @@
   display: none;
 }
 
-.stopButton {
-  height: 80px;
+#stopButton {
+  opacity: 1;
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  height: 120px;
   line-height: 80px;
-  width: 80px;
+  width: 120px;
   font-size: 2em;
   font-weight: bold;
   border-radius: 50%;
   background-color: red;
-  color: white;
   text-align: center;
   cursor: pointer;
+  z-index: 11100000000000;
+  display: none;
+
 }
 
 #myProgress {

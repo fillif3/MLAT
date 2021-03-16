@@ -19,17 +19,18 @@
 
 </head>
 <body onload="showLogo()">
+    <button id="stopButton" type="button" onclick="stopComputation('lat_long_alt')" >STOP</button>
+
     <div id="myPanel" >
         <div id="hideButton" >
             <button type="button" onclick="toggle('controls')" class="hideButton">Panel - hide/show</button>
         </div>
-        <div id="controls" class='hidden'>
+        <div id="controls" >
             <div>
                 <button type="button" onclick="toggle('stationsDiv')" class="hideButton">Stations information - hide/show</button>
             </div>
-            <div id="stationsDiv" class='hidden table-wrapper'>
+            <div id="stationsDiv" class='hidden'>
                 <table id = "stationTable" class = 'fl-table'>
-
                     <tbody>
                       <tr>
                         <td class="information" onclick="alert('Station order number')">Nr</td>
@@ -225,7 +226,6 @@
      </div>
 
     <div id="blocker">
-        <button class="stopButton" type="button" onclick="hideMassageWindow('lat_long_alt')" >STOP</button>
     </div>
  </body>
  </html>

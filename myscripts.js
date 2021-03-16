@@ -39,8 +39,8 @@ function showImage(canvas){
     document.body.appendChild(canvas);
 }
 
-function test2(){
-    alert('przed');
+function stopComputation(){
+   mapModule.stop();
 }
 
 function getActiveStations(){
@@ -55,10 +55,11 @@ function getActiveStations(){
 function GetMap()
 {
     var map = new Microsoft.Maps.Map('#myMap')
-
+    var checkbox = document.getElementById("polygonCheckBox");
+    console.log(1);
+    togglePolygon(checkbox);
     mapModule.setMap(map);
     mapModule.setOutputId('VDOPInput');
-    mapModule.setProgressBarId('myBar');
     mapModule.setClearFunction(restoreVisuals);
     mapModule.setBlockFunction(hideVusuals)
 
@@ -395,10 +396,12 @@ function editPin(loc,index,tableId,alt,name){
 
 function restoreVisuals(){
     document.getElementById('blocker').style.display='none';
+    document.getElementById('stopButton').style.display='none';
 }
 
 function hideVusuals(){
     document.getElementById('blocker').style.display='block';
+    document.getElementById('stopButton').style.display='block';
 }
 
 function doesArrayContainOnlyNumbers(arr){
@@ -437,6 +440,7 @@ function addNewRowToTable(idOfTable,indexOfRow,content,buttonDescription,buttonD
     for (var i = 0; i < content.length; ++i) {
       var cell = row.insertCell(i);
       cell.innerHTML = content[i];
+      cell.type = "number";
       if ((i>0)||(idOfTable=='circleOfInterest')) cell.contentEditable = true;
     }
     if (checkBoxDescription==null) {
@@ -522,6 +526,7 @@ function toggle(divId){
 }
 
 function togglePolygon(checkBox){
+    console.log(checkBox.checked)
     if (checkBox.checked){
         $('#'+"circleOfInterestDiv").slideUp("slow");
         $('#'+"circleOfInterestHideDiv").slideUp("slow");
@@ -530,6 +535,7 @@ function togglePolygon(checkBox){
         mapModule.vertexPolygonVisibility(true);
         mapModule.circlePolygonVisibility(false);
     } else {
+        console.log('qwrerq')
         //$('#'+"circleOfInterestDiv").slideDown("slow");
         $('#'+"circleOfInterestHideDiv").slideDown("slow");
         $('#'+"polygonOfInterestDiv").slideUp("slow");

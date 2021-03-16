@@ -4,30 +4,29 @@ var mapModule = (function() {
 
     const _semimajor_axis = 6378137.0;
     const _semiminor_axis = 6356752.31424518
-    //const _flattening = (_semimajor_axis - _semiminor_axis) / _semimajor_axis;
-    //const _thirdflattening = (_semimajor_axis - _semiminor_axis) / (_semimajor_axis + _semiminor_axis);
-    //const _eccentricity = Math.sqrt(2 * _flattening - _flattening **2);
     const _meter_per_lat = 111320;
 
     var _startTimeForDebugging=0;
     var _endTimeForDebugging=0;
-    var _width =0;
-    var _widthStep=1;
 
+    // Map varaiables
     var _MAP_REFERENCE = '';
     var _handlers = new Map();
+    // Station variables
     var _stationArray =[];
     var _stationAltitudeArray=[];
     var _ifStationActive=[]
+    // Polygon variables
     var _vertexArray=[];
     var _vertexPolygon = null;
+    // VDOP varaibales
     var _VDOPPixels = [];
     var _VDOPValues = [];
+    // Circle variables
     var _circleRadius=0;
     var _circlePin=null;
     var _circlePolygon=null;
     var _outputId='';
-    var _progressBarId = null;
     var _edges=null;
     var _latitudePrecision = 0;
     var _longitudePrecision = 0;
@@ -36,6 +35,11 @@ var mapModule = (function() {
     var _step=0;
     var _clearFunction=null;
     var _blockFunction=null
+    var _endVDOPComputation=false;
+
+    function stop(){
+        _endVDOPComputation=true;
+    }
 
     function setBlockFunction(func){
         _blockFunction=func;
@@ -45,9 +49,7 @@ var mapModule = (function() {
         _clearFunction=func;
     }
 
-    function setProgressBarId(progressBarId){
-        _progressBarId=progressBarId
-    }
+
 
     function getIndexOfVertex(pin){
         for (var i=0;i<_vertexArray.length;++i){
@@ -257,7 +259,7 @@ var mapModule = (function() {
 
     function calculateVDOP(lat_res,lon_res,altitude,base_station,isCircle,timeout){
         _startTimeForDebugging=performance.now();
-
+        _endVDOPComputation=false;
         _clearVDOP();
         if ((_vertexArray.length<3)&&(!isCircle)) return null;
         if ((_circlePolygon==null)&&(isCircle)) return null;
@@ -266,8 +268,6 @@ var mapModule = (function() {
         if (timeout ==4) _step = 30;
         else _step = 5;
         //Math.floor(lat_res/10+1);
-        _width=0
-        _widthStep = 100*_step/lon_res;
         base_station--;
         var newStationArray = [];
         if (_ifStationActive!=null){
@@ -323,13 +323,10 @@ var mapModule = (function() {
         }
 
 
-        if (_currentLatitude<_edges.get('max_latitude')) {
+        if ((_currentLatitude<_edges.get('max_latitude'))&&(!_endVDOPComputation)) {
             setTimeout(function() {
                 calculateVDOPWithTimeOUT(newStationArray,altitude,base_station,isCircle);
             }, timeout)
-            var barDiv = document.getElementById('myBar');
-            _width +=_widthStep;
-            barDiv.style.width = _width+'%';
         }
 
         else{
@@ -732,8 +729,8 @@ var mapModule = (function() {
         changeStateOfStation:changeStateOfStation,
         getIndexOfVertex:getIndexOfVertex,
         getIndexOfStation:getIndexOfStation,
-        setProgressBarId:setProgressBarId,
         setClearFunction:setClearFunction,
         setBlockFunction:setBlockFunction,
+        stop:stop,
     };
 })();

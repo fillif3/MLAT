@@ -344,7 +344,7 @@ var mapModule = (function() {
         console.log(_VDOPValues);
         console.log(i);
         console.log(_outputId);
-        if (_outputId!=='') document.getElementById(_outputId).value = _VDOPValues[i-1].toString().slice(0,7);
+        if (_outputId!=='') document.getElementById(_outputId).value = _VDOPValues[i].toString().slice(0,7);
         getLocalizationMeasurmentError();
     }
 

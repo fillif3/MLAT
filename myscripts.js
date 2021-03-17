@@ -101,6 +101,8 @@ function addNewVertex(e){
         //console.log(loc.latitude.toString().slice(0,7));
         var lat = loc.latitude.toString().slice(0,7);
         var lon = loc.longitude.toString().slice(0,7);
+        mapModule.deleteHandler('click');
+
         //mapModule.deleteHandler('click');
         //var alt = document.getElementById('altInputPopUp').value;
     }
@@ -264,8 +266,8 @@ function changeVertexInTable(e){
     var index = mapModule.getIndexOfVertex(pin);
     var table = document.getElementById("vertexTable");
     var row = table.rows[index+1];
-    row.cells[1].innerHTML = loc.latitude;
-    row.cells[2].innerHTML = loc.longitude;
+    row.cells[1].innerHTML = loc.latitude.toString().slice(0,7);
+    row.cells[2].innerHTML = loc.longitude.toString().slice(0,7);
 }
 
 function changeStationInTable(e){
@@ -274,8 +276,8 @@ function changeStationInTable(e){
     var index = mapModule.getIndexOfStation(pin);
     var table = document.getElementById("stationTable");
     var row = table.rows[index+1];
-    row.cells[1].innerHTML = loc.latitude;
-    row.cells[2].innerHTML = loc.longitude;
+    row.cells[1].innerHTML = loc.latitude.toString().slice(0,7);
+    row.cells[2].innerHTML = loc.longitude.toString().slice(0,7);
 }
 
 function changeCircleInTable(e){
@@ -283,8 +285,8 @@ function changeCircleInTable(e){
     var loc = pin.getLocation();
     var table = document.getElementById("circleOfInterest");
     var row = table.rows[2];
-    row.cells[0].innerHTML = loc.latitude;
-    row.cells[1].innerHTML = loc.longitude;
+    row.cells[0].innerHTML = loc.latitude.toString().slice(0,7);
+    row.cells[1].innerHTML = loc.longitude.toString().slice(0,7);
 }
 
 function deleteRowAndUpdateTable(cell,where){
@@ -346,7 +348,9 @@ function editRowAndUpdateTable(cell){ //To Do
     var index = row.cells[0].innerHTML-1;
     var lat = row.cells[1].innerHTML;
     var lon = row.cells[2].innerHTML;
-    var alt = row.cells[3].innerHTML;
+    if (tableId!="vertexTable") var alt = row.cells[3].innerHTML;
+    else var alt = 0;
+
     if (!doesArrayContainOnlyNumbers([lat,lon,alt])){
         alert('The inputs must be numeric');
         return null;
@@ -373,7 +377,7 @@ function addStationToList(){
     opt.value = list.length;
     opt.innerHTML = list.length;
     list.appendChild(opt);
-    if (list.length === 2) list.value=1;
+    if (list.value == 0) list.value=1;
 }
 
 function removeStationFromList(){

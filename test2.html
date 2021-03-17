@@ -18,16 +18,16 @@
     </script>
 
 </head>
-<body onload="showLogo()">
+<body >
     <button id="stopButton" type="button" onclick="stopComputation('lat_long_alt')" >STOP</button>
 
     <div id="myPanel" >
         <div id="hideButton" >
-            <button type="button" onclick="toggle('controls')" class="hideButton">Panel - hide/show</button>
+            <button type="button" onclick="toggle('controls',this)" class="hideButton">Panel - hide</button>
         </div>
         <div id="controls" >
             <div>
-                <button type="button" onclick="toggle('stationsDiv')" class="hideButton">Stations information - hide/show</button>
+                <button type="button" onclick="toggle('stationsDiv',this)" class="hideButton">Stations information - show</button>
             </div>
             <div id="stationsDiv" class='hidden'>
                 <table id = "stationTable" class = 'fl-table'>
@@ -58,7 +58,7 @@
 
 
             <div id = "polygonOfInterestHideButton">
-                <button   type="button" onclick="toggle('polygonOfInterestDiv')" class="hideButton">Polygon information - hide/show</button>
+                <button   type="button" id="polygonShowingTableButton" onclick="toggle('polygonOfInterestDiv',this)" class="hideButton">Polygon information - show</button>
             </div>
             <div class='hidden' id ="polygonOfInterestDiv">
                 <table id = "vertexTable" class = 'fl-table'>
@@ -86,7 +86,7 @@
 
 
             <div id ="circleOfInterestHideDiv">
-                <button type="button" onclick="toggle('circleOfInterestDiv')" class="hideButton">Circle of interest - hide/show</button>
+                <button type="button" id="circleShowingTableButton" onclick="toggle('circleOfInterestDiv',this)" class="hideButton">Circle of interest - show</button>
             </div>
             <div class='hidden' id ="circleOfInterestDiv">
                 <table  class = 'fl-table' id = "circleOfInterest">
@@ -128,10 +128,10 @@
             </div>
             -->
             <div>
-                <button type="button" onclick="toggle('addationalParametersDiv')" class="hideButton">Addational parameters - hide/show</button>
+                <button type="button" onclick="toggle('addationalParametersDiv',this)" class="hideButton">Addational parameters - show</button>
             </div>
             <div class = "hidden" id="addationalParametersDiv">
-                <div >
+                <div class = "fullWidth">
                     <div class="halfWidthDivLeft">
                         <label class="information" onclick="alert('You can change how many pixels will be displayed after calculating VDOP. The higher value the longer computation time. We advise to not submit values higher than 300 because it can slow down browser. ')" class="halfWidthDivLeft fullHeight information">Latitude resolution:</label>
                         <input class="halfWidthDivLeft fullHeight" id = "latitudeResolutionInput"type="text" value="100" maxlength="10" size="10">
@@ -143,23 +143,23 @@
                     <div style="clear:both;"></div>
 
                 </div>
-                <div>
+                <div class = "fullWidth">
                     <div class="halfWidthDivLeft">
                         <label class="information" onclick="alert('The altitude of plane. It affects measurment error.')" class="halfWidthDivLeft fullHeight information">Altitude (meters):</label>
                         <input class="halfWidthDivLeft fullHeight" id = "altitudeInput"type="text"  value="1000" maxlength="10" size="10">
                     </div>
                     <div  class="halfWidthDivLeft">
-                        <label onclick="alert('Localization algorithm requires selecting base station. It affects measurnment error.\nYou can select station or choose best staion as base station. In this case, measurment error will be computed in the respect to each station and lowest value will be displayed')" class="halfWidthDivLeft information" >Select base station:</label>
-                        <select class="halfWidthDivLeft" id="selectStationList"  maxlength="10" >
+                        <label onclick="alert('Localization algorithm requires selecting base station. It affects measurnment error.\nYou can select station or choose best staion as base station. In this case, measurment error will be computed in the respect to each station and lowest value will be displayed')" class="fullWidth information" >Select base station:</label>
+                        <select class="fullWidth" id="selectStationList"  maxlength="10" >
                         <option value=0>Best station</option>
                         </select>
                     </div>
                     <div style="clear:both;"></div>
 
                 </div>
-                <div>
+                <div class = "fullWidth">
                     <div class="halfWidthDivLeft">
-                        <label onclick="alert('If yes, you can define each vertex of the surveillancd polygon. Otherwise, it is circle  ')" class="halfWidthDivLeft information" >Complex polygon</label>
+                        <label onclick="alert('If yes, you can define each vertex of the surveillancd polygon. Otherwise, it is circle  ')" class="fullWidth information" >Complex polygon</label>
                         <input type="checkbox" value=false onclick="togglePolygon(this)" id="polygonCheckBox" >
                     </div>
                     <div style="clear:both;"></div>
@@ -180,16 +180,26 @@
         <div id="myBar"></div>
     </div>
     <div id="logo" >
+        <div>
          <img src="aerobits.png">
+        </div>
      </div>
      <div id="myMap" ></div>
      <div id = "PanelVDOP">
-         <label >Station measurment error (ns):</label>
-         <input id = "stationMeasurmentErrorInput" onchange="getLocalizationMeasurmentError()" type="text"  maxlength="10" size="10">
-         <label >VDOP:</label>
-         <input id = "VDOPInput" readonly type="text" onchange="getLocalizationMeasurmentError()" maxlength="10" size="10">
-         <label >Localization measurment error (m):</label>
-         <input id = "localizationMeasurmentErrorInput" readonly type="text"  maxlength="10" size="10">
+         <div>
+             <label >Station measurment error (ns):</label>
+             <input id = "stationMeasurmentErrorInput" onchange="getLocalizationMeasurmentError()" type="text"  maxlength="10" size="10">
+             <label >VDOP:</label>
+             <input id = "VDOPInput" readonly type="text" onchange="getLocalizationMeasurmentError()" maxlength="10" size="10">
+             <label >Localization measurment error (m):</label>
+             <input id = "localizationMeasurmentErrorInput" readonly type="text"  maxlength="10" size="10">
+         </div>
+         <div id="gradientDiv">
+             <div class="DivLeft">
+                Colors:
+             </div>
+
+         </div>
      </div>
 
      <div id="popUp" >

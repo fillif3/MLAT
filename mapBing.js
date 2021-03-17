@@ -19,13 +19,14 @@ var mapModule = (function() {
     // Polygon variables
     var _vertexArray=[];
     var _vertexPolygon = null;
-    // VDOP varaibales
+    // VDOP varaibales (references)
     var _VDOPPixels = [];
     var _VDOPValues = [];
     // Circle variables
     var _circleRadius=0;
     var _circlePin=null;
     var _circlePolygon=null;
+    // Variables connected to computing VDOP
     var _outputId='';
     var _edges=null;
     var _latitudePrecision = 0;
@@ -37,32 +38,10 @@ var mapModule = (function() {
     var _blockFunction=null
     var _endVDOPComputation=false;
 
+    // Setting variables
+
     function stop(){
         _endVDOPComputation=true;
-    }
-
-    function setBlockFunction(func){
-        _blockFunction=func;
-    }
-
-    function setClearFunction(func){
-        _clearFunction=func;
-    }
-
-
-
-    function getIndexOfVertex(pin){
-        for (var i=0;i<_vertexArray.length;++i){
-            if (pin===_vertexArray[i]) return i;
-        }
-        return null;
-    }
-
-    function getIndexOfStation(pin){
-        for (var i=0;i<_stationArray.length;++i){
-            if (pin===_stationArray[i]) return i;
-        }
-        return null;
     }
 
     function setOutputId(val){
@@ -70,6 +49,17 @@ var mapModule = (function() {
         _outputId=val;
         //console.log(_outputId);
         //throw 'qweqwe';
+    }
+
+
+    // Setting functions
+
+    function setBlockFunction(func){
+        _blockFunction=func;
+    }
+
+    function setClearFunction(func){
+        _clearFunction=func;
     }
 
     // Geometry transformations between coordiates - Start
@@ -182,13 +172,14 @@ var mapModule = (function() {
     // Computing VDOP
 
     function _computeSingleVDOP(anchors,position,base){
+        var new_bases;
         if (base===-1){
-            var new_bases = [];
+            new_bases = [];
             for (let i=0;i<anchors.length;i++){
                 new_bases.push(i);
             }
 
-        } else {var new_bases = [base];}
+        } else {new_bases = [base];}
 
         var minVDOP = Number.MAX_VALUE;
 
@@ -265,7 +256,7 @@ var mapModule = (function() {
         if ((_circlePolygon==null)&&(isCircle)) return null;
         //if (isCircle) _circlePolygon.setOptions({visible:false});
         //else _vertexPolygon.setOptions({visible:false});
-        if (timeout ==4) _step = 30;
+        if (timeout ===4) _step = 30;
         else _step = 5;
         //Math.floor(lat_res/10+1);
         base_station--;
@@ -339,13 +330,6 @@ var mapModule = (function() {
         }
 
 
-
-
-        //var n2 = performance.now();
-        //console.log(n2-n,'czas');
-        //console.log(n,'czas');
-        //console.log(n2,'czas');
-
     }
 
     function _showVDOP(e){
@@ -409,6 +393,13 @@ var mapModule = (function() {
 
 
     // Polygon functions
+
+    function getIndexOfVertex(pin){
+        for (var i=0;i<_vertexArray.length;++i){
+            if (pin===_vertexArray[i]) return i;
+        }
+        return null;
+    }
 
     function _checkIfPointInsidePolygon(latitude,longitude,isCircle){
         if (isCircle){
@@ -517,6 +508,14 @@ var mapModule = (function() {
 
     // station functions
 
+
+    function getIndexOfStation(pin){
+        for (var i=0;i<_stationArray.length;++i){
+            if (pin===_stationArray[i]) return i;
+        }
+        return null;
+    }
+
     function changeStateOfStation(index,state){
         if (index>=_ifStationActive.length) return null;
         _ifStationActive[index] = state;
@@ -613,7 +612,7 @@ var mapModule = (function() {
         _updateVertexPolygon();
     }
 
-    function _changeVertexPosition(e){
+    function _changeVertexPosition(){
         _updateVertexPolygon();
     }
 

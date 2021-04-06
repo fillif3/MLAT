@@ -9,6 +9,7 @@ from comparison import solve
 from ufir import StateEstimation
 from kalman import KalmanMLAT
 from pf import Cloud
+from DOP import compute_DOP_2D
 
 class receiver:
     def __init__(self,position):
@@ -46,6 +47,38 @@ stations =[[1043,53.39624,14.62899,2.3],
            [317,50.28401, 19.3125, 310.6],
            [1041,53.47089, 14.43529, 18.3],
            [1037,53.52404, 14.94064, 44.7]]
+
+def plotStations(indexes):
+    for i in indexes:
+        plt.plot(stations[i][1],stations[i][2],'rx')
+
+def plotStationsError(indexes):
+    stationsSubGroup = []
+    for i in indexes:
+        stationsSubGroup.append([stations[i][1],stations[i][2]])
+
+    stationsSubGroup2 = []
+    for i in indexes:
+        stationsSubGroup2.append(stations[i][0])
+    anchors,_,_ = check_station(stationsSubGroup2)
+    stationsSubGroup=np.array(stationsSubGroup)
+    lonMin = np.min(stationsSubGroup[:,1])
+    lonMax = np.max(stationsSubGroup[:, 1])
+    latMin = np.min(stationsSubGroup[:, 0])
+    latMax = np.max(stationsSubGroup[:, 0])
+    lat_step = (latMax-latMin)/10
+    lon_step = (lonMax - lonMin) / 10
+    lat_current= latMin
+    while (lat_current<latMax):
+        lon_current = lonMin
+        while (lon_current < lonMax):
+            value = compute_DOP_2D(anchors,[lat_current,lon_current,100])
+            value2=str(value)[0:5],
+            plt.text(lat_current, lon_current, value2[0], color="blue", fontsize=6)
+            lon_current += lon_step
+        lat_current+=lat_step
+    plotStations(indexes)
+    plt.show()
 
 def check_positions_of_stations(st):
     position = np.zeros([len(st),3])
@@ -140,7 +173,7 @@ i=0
 helper = []
 plane_name=''
 flag=True
-start=20
+start=3
 qwe=-1
 with open('output_clean.txt') as f:
     for line in f:
@@ -153,7 +186,7 @@ with open('output_clean.txt') as f:
         # 18464 W połowie uciętę
         # 37928 Przerwa
         # 42128 Najgorzej
-        if i<27360:
+        if i<11056:
             i = i + 1
             continue
         if i%8==0:
@@ -249,7 +282,9 @@ for index in range(len(df)):
 '''
 print(len(row))
 
-
+plotStationsError([0,1,6,7])
+plt.show()
+input()
 
 if start==4:
     A = np.array([[1,0,-1,0],[0,1,0,-1],[0,0,1,0],[0,0,0,1]],dtype=float)
@@ -324,26 +359,27 @@ for  i in range(start,len(row)):
     else:
         anchors, _, _ = check_station([row[i][Station_0], row[i][Station_1], row[i][Station_2]])
         base_staion = check_positions_of_stations([row[i][Station_0]])
-        plane_state.update([row[i][MLAT_latitude], row[i][MLAT_longitude]],
-                           (row[i][Mlat_timestamp] - row[i - 1][Mlat_timestamp]) / 10 ** 9,anchors,row[i][Altitude],
-                           base_staion[0])
+        plane_state.update_excluding_outliers([row[i][MLAT_latitude], row[i][MLAT_longitude]],
+                           (row[i][Mlat_timestamp] - row[i - 1][Mlat_timestamp]) / 10 ** 9,anchors,row[i][Altitude])
     lan_estimated.append(plane_state.state[0])
     long_estimated.append(plane_state.state[1])
-    if i%100==qwe:
+    if i%100==qwe or i==334:
         plt.plot(row[0:i, ADSB_latitude], row[0:i, ADSB_longitude])
         plt.plot(row[0:i, MLAT_latitude], row[0:i, MLAT_longitude], 'x')
         plt.plot(lan_estimated,long_estimated)
-        print(np.linalg.norm(pm.geodetic2enu(row[i, ADSB_latitude],row[i, ADSB_longitude],
-                                             row[i, Altitude],row[i, MLAT_latitude],row[i, MLAT_longitude],row[i, Altitude])))
+        plotStations([0,1,6,7])
+
         plt.show()
 plt.plot(errors_tracking_prediction,'x')
 #print(errors_tracking_prediction[-1])
 plt.show()
+plotStations([0,1,6,7])
 plt.plot(row[0:i, ADSB_latitude], row[0:i, ADSB_longitude],label='ADSB data')
 plt.plot(row[0:i, MLAT_latitude], row[0:i, MLAT_longitude], 'x',label='Multilateration data')
 plt.plot(lan_estimated, long_estimated,label='UFIR estimation')
 plt.legend()
 plt.show()
+
 #mean_time_needed=0
 '''
 for index in range(len(df)):

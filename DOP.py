@@ -137,6 +137,40 @@ def compute_DOP_2D(anchors,position,base=-1):
     except:
         return 1
 
+def compute_R_matrix_2D(anchors,position,base=-1):
+    if base!=-1:
+        helper = deepcopy(anchors[base])
+        anchors[base]=anchors[-1]
+        anchors[-1]=helper
+    J=MLAT.compute_jacobian2_5D(anchors,position)
+    #print(J)
+    Q = compute_Q(len(anchors)-1)
+    #print(J)
+    #print('1')
+    try:
+
+        tran_J = np.transpose(J)
+        #print(tran_J)
+        equation = np.dot(tran_J,J)
+        #print(equation)
+        equation=np.linalg.inv(equation)
+        #print(equation)
+        equation = np.dot(equation,tran_J)
+        #print(equation)
+        equation = np.dot(equation, Q)
+        #print(equation)
+        equation = np.dot(equation, J)
+        #print(equation)
+        helper = np.dot(equation, np.linalg.inv(np.dot(tran_J,J)))
+        return np.dot(equation, np.linalg.inv(np.dot(tran_J,J)))
+        #print(equation)
+        #equation = np.dot(equation, tran_J)
+
+        #equation = np.linalg.multi_dot([equation,tran_J,Q,J,np.linalg.inv(np.dot(tran_J,J))])
+
+    except:
+        return 1
+
 def compute_Q(size_of_matrix):
     Q = np.eye(size_of_matrix)+np.ones((size_of_matrix,size_of_matrix))
     #for i in range(number_of_anchors):

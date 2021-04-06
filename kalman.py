@@ -1,37 +1,41 @@
 import numpy as np
 from copy import deepcopy
 import pymap3d as pm
+from DOP import compute_R_matrix_2D
+import matplotlib.pyplot as plt
 
 class KalmanMLAT:
     def __init__(self,transition,observation_matrix,measurment,step_size,variance_TDOA,Ground_stations,height,base):
         self.A=transition
         self.H=observation_matrix
+        self.treshold=None
+        self.number_of_outliers=0
+        self.index=0
         if len(transition)==4:
             self.state = np.array([measurment[1][0],measurment[1][1],0,0])
 
             self.variance_TODA=variance_TDOA
-            J = self.compute_jacobian(Ground_stations,height,base)
-            R = 2*variance_TDOA**2*np.linalg.inv(np.dot(np.transpose(J),J))
+            helper = self.computeRMatrix(Ground_stations,height)
+            R = helper*variance_TDOA
             self.compute_P_Matrix(R, step_size, 4)
         else:
-            self.state = np.array([measurment[2][0], measurment[2][1], (measurment[2][0] - measurment[1][0]) / step_size[1],
-                                   (measurment[2][1] - measurment[1][1]) / step_size[1], ((measurment[2][0] - measurment[1][0])
-                                  /step_size[1] - (measurment[1][0] - measurment[0][0])/step_size[0])/(step_size[1]+step_size[0]),
-                                  ((measurment[2][1] - measurment[1][1])
-                                   / step_size[1] - (measurment[1][1] - measurment[0][1]) / step_size[0]) / (
-                                              step_size[1] + step_size[0])]
-                                  )
+            #self.state = np.array([measurment[2][0], measurment[2][1], (measurment[2][0] - measurment[1][0]) / step_size[1],
+            #                       (measurment[2][1] - measurment[1][1]) / step_size[1], ((measurment[2][0] - measurment[1][0])
+            #                      /step_size[1] - (measurment[1][0] - measurment[0][0])/step_size[0])/(step_size[1]+step_size[0]),
+            #                      ((measurment[2][1] - measurment[1][1])
+            #                       / step_size[1] - (measurment[1][1] - measurment[0][1]) / step_size[0]) / (
+            #                                  step_size[1] + step_size[0])]
+            #                      )
+            self.state = np.array([measurment[1][0], measurment[1][1], 0, 0,0,0])
 
-            self.variance_TODA = variance_TDOA
-            J = self.compute_jacobian(Ground_stations, height, base)
-            R = 2 * variance_TDOA ** 2 * np.linalg.inv(np.dot(np.transpose(J), J))
+            self.variance_TDOA = variance_TDOA
+            R = self.computeRMatrix(Ground_stations,height)*variance_TDOA
             self.compute_P_Matrix(R,step_size,6)
 
 
     def compute_P_Matrix(self,R,step_size,length):
         if length==6:
-            self.P = np.zeros([6, 6])
-            self.P[0, 0] = R[0, 0]
+            '''self.P = np.zeros([6, 6])
             self.P[0, 0] = R[0, 0]
             self.P[1, 1] = R[1, 1]
             self.P[2, 2] = 2 * R[0, 0] / (step_size[1] ** 2)
@@ -43,7 +47,8 @@ class KalmanMLAT:
             self.P[2, 4] = self.P[4, 2] = -R[0, 0] / (step_size[1] + step_size[0]) ** 2
             self.P[3, 5] = self.P[5, 3] = -R[1, 1] / (step_size[1] + step_size[0]) ** 2
             self.P[0, 4] = self.P[4, 0] = -R[0, 0] / (step_size[1] + step_size[0]) ** 4
-            self.P[1, 5] = self.P[5, 1] = -R[1, 1] / (step_size[1] + step_size[0]) ** 4
+            self.P[1, 5] = self.P[5, 1] = -R[1, 1] / (step_size[1] + step_size[0]) ** 4'''
+            self.P = np.eye(6)*10000
         else:
 
             self.P = np.zeros([4, 4])
@@ -62,17 +67,66 @@ class KalmanMLAT:
             self.P[0, 2] =  1000000
             self.P[1, 3] =  1000000'''
 
-    def update(self,measurment,step_size,groun_stations,height,base_ground_station):
+    def update_excluding_outliers(self,observation,time_step,ground_stations,altitude):
+        P = self.P
+        variances = np.diag(P)
+        state= self.state
+        error=self.update(observation,time_step,ground_stations,altitude)
+        #print(np.dot(variances,error))
+        if self.treshold is None:
+            self.treshold = error
+            return 1#error
+        #return error
+        if True:#error<(self.treshold*15.5):
+            #self.time_delay=0
+            self.treshold -= 0.01*(self.treshold-error)
+            self.number_of_outliers =0
+            #print(self.treshold)
+
+            return 1#error
+        self.number_of_outliers+=1
+        #print(self.treshold)
+        #print(self.number_of_outliers)
+        self.P=P
+        self.state=state
+        #self.time_delay+=time_step
+        if self.number_of_outliers==10:
+            self.recalculation(observation,ground_stations,altitude,time_step)
+            print('recalculation')
+            #print(self.estimation)
+        return None
+
+    def recalculation(self,observation,Ground_stations, height,step_size):
+        if len(self.state)==4:
+            self.state = np.array([observation[0], observation[1], 0, 0])
+            helper = self.computeRMatrix(Ground_stations, height)
+            R = helper * self.variance_TDOA
+            self.compute_P_Matrix(R, step_size, 4)
+        else:
+            self.state = np.array([observation[0], observation[1], 0, 0,0,0])
+            helper = self.computeRMatrix(Ground_stations, height)
+            R = helper * self.variance_TDOA
+            self.compute_P_Matrix(R, [step_size,step_size], 6)
+
+    def update(self,measurment,step_size,groun_stations,height,base_ground_station=None):
         transition_matrix = self.compute_transition_matrix(step_size)
+        self.index+=1
         state_prediction = np.dot(transition_matrix,self.state)
-        varaince_prediction = np.linalg.multi_dot([transition_matrix,self.P,np.transpose(transition_matrix)])
+        try:
+            varaince_prediction = np.linalg.multi_dot([transition_matrix,self.P,np.transpose(transition_matrix)])
+        except:
+            print('1')
         transposed_H = np.transpose(self.H)
-        J = self.compute_jacobian(groun_stations,height,base_ground_station)
-        R = 2 * self.variance_TODA ** 2 * np.linalg.inv(np.dot(np.transpose(J), J))
+        R = self.computeRMatrix(groun_stations,height)*15
+        #print(R)
+        if R[0][0]>100:
+            print(self.index)
         kalman_gain = np.linalg.multi_dot([varaince_prediction,transposed_H,np.linalg.inv(np.linalg.multi_dot(
                                         [self.H,varaince_prediction,transposed_H])+R)])
         self.state = state_prediction + np.dot(kalman_gain,measurment-np.dot(self.H,state_prediction))
         self.P = varaince_prediction - np.linalg.multi_dot([kalman_gain,self.H,varaince_prediction])
+        return np.linalg.norm(np.array(pm.geodetic2enu(self.state[0], self.state[1], height,
+                                                       measurment[0], measurment[1], height)))
 
     def compute_jacobian(self,anchors,height,base):
         jacobian=np.zeros([len(anchors)-1,2])
@@ -95,3 +149,6 @@ class KalmanMLAT:
                 if self.A[i,j]==-1:
                     transition_matrix[i, j] = timestamp
         return transition_matrix
+
+    def computeRMatrix(self,Ground_stations,height):
+        return  compute_R_matrix_2D(Ground_stations,[self.state[0],self.state[1],height])

@@ -4,6 +4,7 @@ from copy import deepcopy
 import pymap3d as pm
 from mlat import MLAT
 from comparison import solve
+from comparisonKnownTime import solveKnownTime
 import time
 
 
@@ -17,7 +18,7 @@ def place_stations_circle(number,center,radius,height_max=100):
     stations=[]
     for _ in range(number):
         x=np.cos(current_step)*radius*np.random.uniform(0.5,1)
-        y=np.sin(current_step)*radius
+        y=np.sin(current_step)*radius*np.random.uniform(0.5,1)
         z=np.random.uniform(0,height_max)
         #stations_xyz.append([x,y,z])
         stations.append(pm.enu2geodetic(x,y,z,center['lat'],center['long'],0))
@@ -56,8 +57,8 @@ def compute_ranges(stations,position,time_variance,c_vel=299792458/ 1.0003):
         rang= np.linalg.norm((np.array(pm.geodetic2enu(s[0],s[1],s[2],position[0],position[1],position[2])))) #compute distance between plane and station
         rang += np.random.normal(scale=range_variance)
         ranges.append(rang)
-    helper = ranges[0]
-    ranges=np.array(ranges)-helper
+    #helper = ranges[0]
+    ranges=np.array(ranges)#-helper
     return ranges
 
 def check_station(position):
@@ -85,7 +86,7 @@ CENTER = {
 RADIUS = 25000
 VARIANCE = 10**(-9)*70
 C_VELOCITY = 299792458/ 1.0003#m/s
-NUMBER_OF_STATIONS=3
+NUMBER_OF_STATIONS=8
 np.random.seed(46)
 
 stations = place_stations_circle(NUMBER_OF_STATIONS,CENTER,25000)
@@ -101,13 +102,17 @@ measurments_x_closed =[]
 measurments_y_closed =[]
 measurments_x_github =[]
 measurments_y_github =[]
+measurments_x_githubKnownTime=[]
+measurments_y_githubKnownTime=[]
 starting_position_for_loop =pm.geodetic2enu(CENTER['lat'],CENTER['long'],0,stations[0][0],stations[0][1],stations[0][2])
 #helper = pm.geodetic2ecef(CENTER['lat'],CENTER['long'],0)
 #print(helper)
 errorFoy =0
 timeFoy=[0]
 errorGithub=0
+errorGithubKnownTime=0
 timeGithub=[0]
+timeGithubKnownTime=[0]
 for i in range(1000):
     plane=plane_step(plane)
 
@@ -182,6 +187,31 @@ for i in range(1000):
 
     errorGithub += np.linalg.norm(pm.geodetic2enu(plane['position'][0],plane['position'][1],plane['position'][2],estimator_earth_axis[0],estimator_earth_axis[1],estimator_earth_axis[2]))
 
+    # GITHUB known time
+
+    anchors,_,base= check_station_ECEF(stations)
+
+    measurments = []
+
+    for i in range(len(anchors)):
+        measurments.append([receiver(anchors[i]), ranges[i]/C_VELOCITY, 0.00001])
+
+
+
+    #print(starting_position_for_loop_github)
+    t = time.time()
+    estimator,ret= solveKnownTime(measurments, plane['position'][2], 0.3038,
+                        starting_position_for_loop_github,0)
+    #print(estimator)
+    timeGithubKnownTime.append(timeGithub[-1] + time.time() - t)
+
+    estimator_earth_axis = pm.ecef2geodetic(estimator[0], estimator[1], estimator[2])
+
+    measurments_x_githubKnownTime.append(estimator_earth_axis[0])
+    measurments_y_githubKnownTime.append(estimator_earth_axis[1])
+
+    errorGithubKnownTime += np.linalg.norm(pm.geodetic2enu(plane['position'][0],plane['position'][1],plane['position'][2],estimator_earth_axis[0],estimator_earth_axis[1],estimator_earth_axis[2]))
+
 
     if False:
         plt.plot(measurments_x[-1],measurments_y[-1],'gx',label='Metoda otwarta')
@@ -191,6 +221,7 @@ for i in range(1000):
 
 
 #print('błąd dla algorytmu Foya wynosi:',errorFoy/1000)
+print('błąd dla algorytmu Githuba ze znanym czasem wynosi:',errorGithubKnownTime/1000)
 print('błąd dla algorytmu Githuba wynosi:',errorGithub/1000)
 
 
@@ -199,12 +230,15 @@ print('błąd dla algorytmu Githuba wynosi:',errorGithub/1000)
 #print(measurments_x_closed,measurments_y_closed)
 #plt.plot(measurments_x,measurments_y,'gx',label='Metoda otwarta')
 plt.plot(x,y,label='Prawdziwa pozycja')
-plt.plot(measurments_x_github,measurments_y_github,'yx',label='Metoda otwarta z githuba')
+plt.plot(measurments_x_githubKnownTime,measurments_y_githubKnownTime,'yx',label='Metoda otwarta z githuba ze znanym czasem wysłania')
+plt.plot(measurments_x_githubKnownTime,measurments_y_github,'bx',label='Metoda otwarta z githuba')
 print(x)
 print(y)
 plt.legend()
 plt.show()
 plt.plot(timeGithub,label='SciPy method')
+plt.plot(timeGithubKnownTime,label='SciPy method with known time')
+
 #plt.plot(timeFoy,label='Foy')
 plt.legend()
 plt.show()

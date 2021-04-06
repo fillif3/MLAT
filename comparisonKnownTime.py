@@ -53,17 +53,17 @@ Cair = 299792458 / 1.0003
 #glogger = logging.getLogger("solver")
 
 
-def _residuals(x_guess, pseudorange_data, altitude, altitude_error):
+def _residuals(x_guess, pseudorange_data, altitude, altitude_error,base_time):
     """Return an array of residuals for a position guess at x_guess versus
     actual measurements pseudorange_data and altitude."""
 
-    (*position_guess, offset) = x_guess
+    position_guess = x_guess
 
     res = []
 
     # compute pseudoranges at the current guess vs. measured pseudorange
     for receiver_position, pseudorange, error in pseudorange_data:
-        pseudorange_guess = geodesy.ecef_distance(receiver_position, position_guess) - offset
+        pseudorange_guess = geodesy.ecef_distance(receiver_position, position_guess)
         res.append((pseudorange - pseudorange_guess) / error)
 
     # compute altitude at the current guess vs. measured altitude
@@ -74,7 +74,7 @@ def _residuals(x_guess, pseudorange_data, altitude, altitude_error):
     return res
 
 
-def solve(measurements, altitude, altitude_error, initial_guess):
+def solveKnownTime(measurements, altitude, altitude_error, initial_guess,base_timestamp):
     """Given a set of receive timestamps, multilaterate the position of the transmitter.
     measurements: a list of (receiver, timestamp, error) tuples. Should be sorted by timestamp.
       receiver.position should be the ECEF position of the receiver
@@ -88,19 +88,18 @@ def solve(measurements, altitude, altitude_error, initial_guess):
     ecef_cov: an estimate of the covariance matrix of ecef
     """
 
-    if len(measurements) + (0 if altitude is None else 1) < 4:
+    if len(measurements) + (0 if altitude is None else 1) < 3:
         raise ValueError('Not enough measurements available')
 
-    base_timestamp = measurements[0][1]
     pseudorange_data = [(receiver.position,
                          (timestamp - base_timestamp) * Cair,
                          math.sqrt(variance) * Cair)
                         for receiver, timestamp, variance in measurements]
-    x_guess = [initial_guess[0], initial_guess[1], initial_guess[2], 0.0]
+    x_guess = [initial_guess[0], initial_guess[1], initial_guess[2]]
     x_est, cov_x, infodict, mesg, ler = scipy.optimize.leastsq(
         _residuals,
         x_guess,
-        args=(pseudorange_data, altitude, altitude_error),
+        args=(pseudorange_data, altitude, altitude_error,base_timestamp),
         full_output=True,
         maxfev=SOLVER_MAXFEV)
 
@@ -109,20 +108,20 @@ def solve(measurements, altitude, altitude_error, initial_guess):
 
         # Solver found a result. Validate that it makes
         # some sort of physical sense.
-        (*position_est, offset_est) = x_est
+        position_est= x_est
 
 
-        if offset_est < 0 or offset_est > MAX_RANGE:
+       # if offset_est < 0 or offset_est > MAX_RANGE:
             #glogger.info("solver: bad offset: {0}".formaT(offset_est))
             # implausible range offset to closest receiver
-            return None
+       #     return None, None
 
-        for receiver, timestamp, variance in measurements:
-            d = geodesy.ecef_distance(receiver.position, position_est)
-            if d > MAX_RANGE:
+        #for receiver, timestamp, variance in measurements:
+        #    d = geodesy.ecef_distance(receiver.position, position_est)
+        #    if d > MAX_RANGE:
                 # too far from this receiver
                 #glogger.info("solver: bad range: {0}".format(d))
-                return None
+        #        return None, None
 
         if cov_x is None:
             return position_est, None

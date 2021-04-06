@@ -1,4 +1,4 @@
-    import numpy as np
+import numpy as np
 from mlat import MLAT
 import pymap3d as pm
 import matplotlib.pyplot as plt

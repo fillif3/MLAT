@@ -117,7 +117,7 @@ for i in range(1000):
     #plane['position'] = [53.4,14.7,1000]
     #stations = [[53.39624, 14.62899, 2.3], [53.47089, 14.43529, 18.3], [53.52404, 14.94064, 44.7]]
     #starting_position_for_loop = [100,100,100]
-    ranges = compute_ranges(stations, plane['position'], time_variance= 0)
+    ranges = compute_ranges(stations, plane['position'], time_variance= 70*10**(-9))
 
     starting_position_for_loop_github = pm.enu2geodetic(starting_position_for_loop[0], starting_position_for_loop[1], starting_position_for_loop[2], stations[0][0], stations[0][1],
                                            stations[0][2])
@@ -126,24 +126,24 @@ for i in range(1000):
     #testing
 
 
-    anchors,_,base= check_station(stations)
-    t = time.time()
+    #anchors,_,base= check_station(stations)
+    #t = time.time()
     # testing
 
-    estimator, _ = MLAT.mlat(anchors, ranges, height=plane['position'][2], starting_location = starting_position_for_loop,
-                                    method='taylor2.5D_sphere_dll', base_station=base)
-    timeFoy.append(timeFoy[-1]+time.time()-t)
-    estimator_earth_axis = pm.enu2geodetic(estimator[0],estimator[1],estimator[2],stations[0][0],stations[0][1],stations[0][2])
-    measurments_x.append(estimator_earth_axis[0])
-    measurments_y.append(estimator_earth_axis[1])
+    #estimator, _ = MLAT.mlat(anchors, ranges, height=plane['position'][2], starting_location = starting_position_for_loop,
+   #                                 method='taylor2.5D_sphere_dll', base_station=base)
+    #timeFoy.append(timeFoy[-1]+time.time()-t)
+    #estimator_earth_axis = pm.enu2geodetic(estimator[0],estimator[1],estimator[2],stations[0][0],stations[0][1],stations[0][2])
+    #measurments_x.append(estimator_earth_axis[0])
+    #measurments_y.append(estimator_earth_axis[1])
 
-    errorFoy += np.linalg.norm(pm.geodetic2enu(plane['position'][0],plane['position'][1],plane['position'][2],estimator_earth_axis[0],estimator_earth_axis[1],estimator_earth_axis[2]))
+    #errorFoy += np.linalg.norm(pm.geodetic2enu(plane['position'][0],plane['position'][1],plane['position'][2],estimator_earth_axis[0],estimator_earth_axis[1],estimator_earth_axis[2]))
 
     #TO DO state estimator
 
-    estimation = estimator
+    #estimation = estimator
 
-    starting_position_for_loop = estimation
+    #starting_position_for_loop = estimation
 
     # CLOSE METHOD
 
@@ -190,14 +190,14 @@ for i in range(1000):
         plt.show()
 
 
-print('błąd dla algorytmu Foya wynosi:',errorFoy/1000)
+#print('błąd dla algorytmu Foya wynosi:',errorFoy/1000)
 print('błąd dla algorytmu Githuba wynosi:',errorGithub/1000)
 
 
 #plt.plot(measurments_x_closed,measurments_y_closed,'kx',label='Metoda zamknięta')
 
 #print(measurments_x_closed,measurments_y_closed)
-plt.plot(measurments_x,measurments_y,'gx',label='Metoda otwarta')
+#plt.plot(measurments_x,measurments_y,'gx',label='Metoda otwarta')
 plt.plot(x,y,label='Prawdziwa pozycja')
 plt.plot(measurments_x_github,measurments_y_github,'yx',label='Metoda otwarta z githuba')
 print(x)
@@ -205,6 +205,6 @@ print(y)
 plt.legend()
 plt.show()
 plt.plot(timeGithub,label='SciPy method')
-plt.plot(timeFoy,label='Foy')
+#plt.plot(timeFoy,label='Foy')
 plt.legend()
 plt.show()

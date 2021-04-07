@@ -89,7 +89,7 @@ class KalmanMLAT:
         self.P=P
         self.state=state
         #self.time_delay+=time_step
-        if self.number_of_outliers==10:
+        if self.number_of_outliers==5:
             self.recalculation(observation,ground_stations,altitude,time_step,base)
             print('recalculation')
             #print(self.estimation)
@@ -116,7 +116,7 @@ class KalmanMLAT:
         except:
             print('1')
         transposed_H = np.transpose(self.H)
-        R = self.computeRMatrix(groun_stations,height,base_ground_station)*15
+        R = self.computeRMatrix(groun_stations,height,base_ground_station)*self.variance_TDOA
         #print(R)
         #if R[0][0]>100:
         #    print(self.index)

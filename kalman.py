@@ -15,7 +15,7 @@ class KalmanMLAT:
             self.state = np.array([measurment[1][0],measurment[1][1],0,0])
 
             self.variance_TODA=variance_TDOA
-            helper = self.computeRMatrix(Ground_stations,height)
+            helper = self.computeRMatrix(Ground_stations,height,base)
             R = helper*variance_TDOA
             self.compute_P_Matrix(R, step_size, 4)
         else:
@@ -29,7 +29,7 @@ class KalmanMLAT:
             self.state = np.array([measurment[1][0], measurment[1][1], 0, 0,0,0])
 
             self.variance_TDOA = variance_TDOA
-            R = self.computeRMatrix(Ground_stations,height)*variance_TDOA
+            R = self.computeRMatrix(Ground_stations,height,base)*variance_TDOA
             self.compute_P_Matrix(R,step_size,6)
 
 
@@ -67,17 +67,16 @@ class KalmanMLAT:
             self.P[0, 2] =  1000000
             self.P[1, 3] =  1000000'''
 
-    def update_excluding_outliers(self,observation,time_step,ground_stations,altitude):
+    def update_excluding_outliers(self,observation,time_step,ground_stations,altitude,base):
         P = self.P
-        variances = np.diag(P)
         state= self.state
-        error=self.update(observation,time_step,ground_stations,altitude)
+        error=self.update(observation,time_step,ground_stations,altitude,base)
         #print(np.dot(variances,error))
         if self.treshold is None:
             self.treshold = error
             return 1#error
         #return error
-        if True:#error<(self.treshold*15.5):
+        if error<(self.treshold*7.5):
             #self.time_delay=0
             self.treshold -= 0.01*(self.treshold-error)
             self.number_of_outliers =0
@@ -91,24 +90,24 @@ class KalmanMLAT:
         self.state=state
         #self.time_delay+=time_step
         if self.number_of_outliers==10:
-            self.recalculation(observation,ground_stations,altitude,time_step)
+            self.recalculation(observation,ground_stations,altitude,time_step,base)
             print('recalculation')
             #print(self.estimation)
         return None
 
-    def recalculation(self,observation,Ground_stations, height,step_size):
+    def recalculation(self,observation,Ground_stations, height,step_size,base):
         if len(self.state)==4:
             self.state = np.array([observation[0], observation[1], 0, 0])
-            helper = self.computeRMatrix(Ground_stations, height)
+            helper = self.computeRMatrix(Ground_stations, height,base)
             R = helper * self.variance_TDOA
             self.compute_P_Matrix(R, step_size, 4)
         else:
             self.state = np.array([observation[0], observation[1], 0, 0,0,0])
-            helper = self.computeRMatrix(Ground_stations, height)
+            helper = self.computeRMatrix(Ground_stations, height,base)
             R = helper * self.variance_TDOA
             self.compute_P_Matrix(R, [step_size,step_size], 6)
 
-    def update(self,measurment,step_size,groun_stations,height,base_ground_station=None):
+    def update(self,measurment,step_size,groun_stations,height,base_ground_station):
         transition_matrix = self.compute_transition_matrix(step_size)
         self.index+=1
         state_prediction = np.dot(transition_matrix,self.state)
@@ -117,10 +116,11 @@ class KalmanMLAT:
         except:
             print('1')
         transposed_H = np.transpose(self.H)
-        R = self.computeRMatrix(groun_stations,height)*15
+        R = self.computeRMatrix(groun_stations,height,base_ground_station)*15
         #print(R)
-        if R[0][0]>100:
-            print(self.index)
+        #if R[0][0]>100:
+        #    print(self.index)
+
         kalman_gain = np.linalg.multi_dot([varaince_prediction,transposed_H,np.linalg.inv(np.linalg.multi_dot(
                                         [self.H,varaince_prediction,transposed_H])+R)])
         self.state = state_prediction + np.dot(kalman_gain,measurment-np.dot(self.H,state_prediction))
@@ -150,5 +150,12 @@ class KalmanMLAT:
                     transition_matrix[i, j] = timestamp
         return transition_matrix
 
-    def computeRMatrix(self,Ground_stations,height):
-        return  compute_R_matrix_2D(Ground_stations,[self.state[0],self.state[1],height])
+    def computeRMatrix(self,Ground_stations,height,base):
+        stationsGeo = []
+        for station in Ground_stations:
+            stationsGeo.append(pm.enu2geodetic(station[0],station[1],station[2],base[0],base[1],base[2]))
+        stationsXYZ = []
+        for station in stationsGeo:
+            stationsXYZ.append(pm.geodetic2enu(station[0],station[1],station[2],self.state[0],self.state[1],0))
+
+        return  compute_R_matrix_2D(np.array(stationsXYZ),[0,0,height])

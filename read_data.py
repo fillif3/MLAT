@@ -53,26 +53,23 @@ def plotStations(indexes):
         plt.plot(stations[i][1],stations[i][2],'rx')
 
 def plotStationsError(indexes):
-    stationsSubGroup = []
-    for i in indexes:
-        stationsSubGroup.append([stations[i][1],stations[i][2]])
-
     stationsSubGroup2 = []
     for i in indexes:
-        stationsSubGroup2.append(stations[i][0])
-    anchors,_,_ = check_station(stationsSubGroup2)
-    stationsSubGroup=np.array(stationsSubGroup)
-    lonMin = np.min(stationsSubGroup[:,1])
-    lonMax = np.max(stationsSubGroup[:, 1])
-    latMin = np.min(stationsSubGroup[:, 0])
-    latMax = np.max(stationsSubGroup[:, 0])
+        stationsSubGroup2.append(stations[i])
+    stationsSubGroup2 = np.array(stationsSubGroup2)
+    anchors,_,_ = check_station(stationsSubGroup2[:,0])
+
+    lonMin = np.min(stationsSubGroup2[:,2])
+    lonMax = np.max(stationsSubGroup2[:, 2])
+    latMin = np.min(stationsSubGroup2[:, 1])
+    latMax = np.max(stationsSubGroup2[:, 1])
     lat_step = (latMax-latMin)/10
     lon_step = (lonMax - lonMin) / 10
     lat_current= latMin
     while (lat_current<latMax):
         lon_current = lonMin
         while (lon_current < lonMax):
-            value = compute_DOP_2D(anchors,[lat_current,lon_current,100])
+            value = compute_DOP_2D(anchors,pm.geodetic2enu(lat_current,lon_current,100,stationsSubGroup2[0][1],stationsSubGroup2[0][2],stationsSubGroup2[0][3]))
             value2=str(value)[0:5],
             plt.text(lat_current, lon_current, value2[0], color="blue", fontsize=6)
             lon_current += lon_step
@@ -282,9 +279,9 @@ for index in range(len(df)):
 '''
 print(len(row))
 
-plotStationsError([0,1,6,7])
-plt.show()
-input()
+#plotStationsError([0,1,6,7])
+#plt.show()
+#input()
 
 if start==4:
     A = np.array([[1,0,-1,0],[0,1,0,-1],[0,0,1,0],[0,0,0,1]],dtype=float)
@@ -360,7 +357,7 @@ for  i in range(start,len(row)):
         anchors, _, _ = check_station([row[i][Station_0], row[i][Station_1], row[i][Station_2]])
         base_staion = check_positions_of_stations([row[i][Station_0]])
         plane_state.update_excluding_outliers([row[i][MLAT_latitude], row[i][MLAT_longitude]],
-                           (row[i][Mlat_timestamp] - row[i - 1][Mlat_timestamp]) / 10 ** 9,anchors,row[i][Altitude])
+                           (row[i][Mlat_timestamp] - row[i - 1][Mlat_timestamp]) / 10 ** 9,anchors,row[i][Altitude],base_staion[0])
     lan_estimated.append(plane_state.state[0])
     long_estimated.append(plane_state.state[1])
     if i%100==qwe or i==334:

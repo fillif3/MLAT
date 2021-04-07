@@ -202,37 +202,37 @@ if __name__ == "__main__":
     #            Dops[i,j]=2000
     print(Dops)
     plt.show()
-'''
 
-anchors = np.array([[0,-6180,50],[0,16180,70],[11756,16180,80],[19021,-6180,110],[0,-20000,25]])
-alt =8500
-x=np.linspace(-30000,30000,13)
-y=np.linspace(-30000,30000,13)
-errors =np.zeros([len(x),len(y)])
-x_plot_input=[]
-y_plot_input=[]
-z_plot_input=[]
+if __name__ == '__main__':
 
-for i in range(len(x)):
-    for j in range(len(y)):
-        print([x[i],y[j],alt])
-        errors[i,j] = compute_DOP_2D(anchors,[x[i],y[j],alt],base=-1)
-        print(errors[i,j])
-        if errors[i,j] < 10000:
-            x_plot_input.append(x[i])
-            y_plot_input.append(y[j])
-            z_plot_input.append(errors[i,j])
+    anchors = np.array([[0,-6180,50],[0,16180,70],[11756,16180,80],[19021,-6180,110],[0,-20000,25]])
+    alt =8500
+    x=np.linspace(-30000,30000,13)
+    y=np.linspace(-30000,30000,13)
+    errors =np.zeros([len(x),len(y)])
+    x_plot_input=[]
+    y_plot_input=[]
+    z_plot_input=[]
+
+    for i in range(len(x)):
+        for j in range(len(y)):
+            print([x[i],y[j],alt])
+            errors[i,j] = compute_DOP_2D(anchors,[x[i],y[j],alt],base=-1)
+            print(errors[i,j])
+            if errors[i,j] < 10000:
+                x_plot_input.append(x[i])
+                y_plot_input.append(y[j])
+                z_plot_input.append(errors[i,j])
 
 
 
-print(errors)
-#ax = sns.heatmap(errors,vmax=100)
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
-ax.scatter(x_plot_input,y_plot_input,z_plot_input)
-for arr in anchors:
-    ax.scatter(arr[0], arr[1], 40,'r')
-plt.show()
-print(statistics.mean(z_plot_input))
-print(statistics.median(z_plot_input))
-'''
+    print(errors)
+    #ax = sns.heatmap(errors,vmax=100)
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.scatter(x_plot_input,y_plot_input,z_plot_input)
+    for arr in anchors:
+        ax.scatter(arr[0], arr[1], 40,'r')
+    plt.show()
+    print(statistics.mean(z_plot_input))
+    print(statistics.median(z_plot_input))

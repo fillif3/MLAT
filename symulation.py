@@ -8,6 +8,21 @@ from comparisonKnownTime import solveKnownTime
 import time
 
 
+foyFlag=True
+githubFlag=True
+githubFlagKnownTime=True
+closedFlag=True
+
+CENTER = {
+  "lat": 53.39624,
+  "long": 14.62899
+}
+RADIUS = 25000
+VARIANCE = 10**(-9)*70
+C_VELOCITY = 299792458/ 1.0003#m/s
+NUMBER_OF_STATIONS=8
+np.random.seed(46)
+
 class receiver:
     def __init__(self,position):
         self.position=position
@@ -79,15 +94,7 @@ def check_station_ECEF(position):
 
     return position_xyz2,bounds,position
 
-CENTER = {
-  "lat": 53.39624,
-  "long": 14.62899
-}
-RADIUS = 25000
-VARIANCE = 10**(-9)*70
-C_VELOCITY = 299792458/ 1.0003#m/s
-NUMBER_OF_STATIONS=8
-np.random.seed(46)
+
 
 stations = place_stations_circle(NUMBER_OF_STATIONS,CENTER,25000)
 for s in stations:
@@ -109,6 +116,7 @@ starting_position_for_loop =pm.geodetic2enu(CENTER['lat'],CENTER['long'],0,stati
 #print(helper)
 errorFoy =0
 timeFoy=[0]
+errorClosed=0
 errorGithub=0
 errorGithubKnownTime=0
 timeGithub=[0]
@@ -128,89 +136,97 @@ for i in range(1000):
                                            stations[0][2])
     starting_position_for_loop_github = pm.geodetic2ecef(starting_position_for_loop_github[0],starting_position_for_loop_github[1],starting_position_for_loop_github[2])
     # FOY
-    #testing
 
+    if foyFlag:
 
-    #anchors,_,base= check_station(stations)
-    #t = time.time()
-    # testing
+        anchors,_,base= check_station(stations)
+        t = time.time()
+        # testing
 
-    #estimator, _ = MLAT.mlat(anchors, ranges, height=plane['position'][2], starting_location = starting_position_for_loop,
-   #                                 method='taylor2.5D_sphere_dll', base_station=base)
-    #timeFoy.append(timeFoy[-1]+time.time()-t)
-    #estimator_earth_axis = pm.enu2geodetic(estimator[0],estimator[1],estimator[2],stations[0][0],stations[0][1],stations[0][2])
-    #measurments_x.append(estimator_earth_axis[0])
-    #measurments_y.append(estimator_earth_axis[1])
+        estimator, _ = MLAT.mlat(anchors, ranges, height=plane['position'][2], starting_location = starting_position_for_loop,
+                                        method='taylor2.5D_sphere_dll', base_station=base)
+        timeFoy.append(timeFoy[-1]+time.time()-t)
+        estimator_earth_axis = pm.enu2geodetic(estimator[0],estimator[1],estimator[2],stations[0][0],stations[0][1],stations[0][2])
+        measurments_x.append(estimator_earth_axis[0])
+        measurments_y.append(estimator_earth_axis[1])
 
-    #errorFoy += np.linalg.norm(pm.geodetic2enu(plane['position'][0],plane['position'][1],plane['position'][2],estimator_earth_axis[0],estimator_earth_axis[1],estimator_earth_axis[2]))
+        errorFoy += np.linalg.norm(pm.geodetic2enu(plane['position'][0],plane['position'][1],plane['position'][2],estimator_earth_axis[0],estimator_earth_axis[1],estimator_earth_axis[2]))
 
     #TO DO state estimator
 
-    #estimation = estimator
+    estimation = estimator
 
-    #starting_position_for_loop = estimation
+    starting_position_for_loop = estimation
 
     # CLOSE METHOD
 
-    #estimator, _ = MLAT.mlat(anchors, ranges, height=plane['position'][2],
-    #                              starting_location=starting_position_for_loop,
-    #                              method='schau', base_station=base)
+    if closedMethods:
 
-    #estimator_earth_axis = pm.enu2geodetic(estimator[0], estimator[1], estimator[2], stations[0][0], stations[0][1],
-    #                                       stations[0][2])
+        estimator, _ = MLAT.mlat(anchors, ranges, height=plane['position'][2],
+                                      starting_location=starting_position_for_loop,
+                                      method='schau', base_station=base)
 
-    #measurments_x_closed.append(estimator_earth_axis[0])
-    #measurments_y_closed.append(estimator_earth_axis[1])
+        estimator_earth_axis = pm.enu2geodetic(estimator[0], estimator[1], estimator[2], stations[0][0], stations[0][1],
+                                               stations[0][2])
+
+        measurments_x_closed.append(estimator_earth_axis[0])
+        measurments_y_closed.append(estimator_earth_axis[1])
+        errorClosed += np.linalg.norm(pm.geodetic2enu(plane['position'][0],plane['position'][1],plane['position'][2],estimator_earth_axis[0],estimator_earth_axis[1],estimator_earth_axis[2]))
+
 
     # GITHUB
 
-    anchors,_,base= check_station_ECEF(stations)
+    if githubFlag:
 
-    measurments = []
+        anchors,_,base= check_station_ECEF(stations)
 
-    for i in range(len(anchors)):
-        measurments.append([receiver(anchors[i]), ranges[i]/C_VELOCITY, 0.00001])
+        measurments = []
+
+        for i in range(len(anchors)):
+            measurments.append([receiver(anchors[i]), ranges[i]/C_VELOCITY, 0.00001])
 
 
 
-    #print(starting_position_for_loop_github)
-    t = time.time()
-    estimator,ret= solve(measurments, plane['position'][2], 0.3038,
-                        starting_position_for_loop_github)
-    #print(estimator)
-    timeGithub.append(timeGithub[-1] + time.time() - t)
+        #print(starting_position_for_loop_github)
+        t = time.time()
+        estimator,ret= solve(measurments, plane['position'][2], 0.3038,
+                            starting_position_for_loop_github)
+        #print(estimator)
+        timeGithub.append(timeGithub[-1] + time.time() - t)
 
-    estimator_earth_axis = pm.ecef2geodetic(estimator[0], estimator[1], estimator[2])
+        estimator_earth_axis = pm.ecef2geodetic(estimator[0], estimator[1], estimator[2])
 
-    measurments_x_github.append(estimator_earth_axis[0])
-    measurments_y_github.append(estimator_earth_axis[1])
+        measurments_x_github.append(estimator_earth_axis[0])
+        measurments_y_github.append(estimator_earth_axis[1])
 
-    errorGithub += np.linalg.norm(pm.geodetic2enu(plane['position'][0],plane['position'][1],plane['position'][2],estimator_earth_axis[0],estimator_earth_axis[1],estimator_earth_axis[2]))
+        errorGithub += np.linalg.norm(pm.geodetic2enu(plane['position'][0],plane['position'][1],plane['position'][2],estimator_earth_axis[0],estimator_earth_axis[1],estimator_earth_axis[2]))
 
     # GITHUB known time
 
-    anchors,_,base= check_station_ECEF(stations)
+    if githubFlagKnownTime:
 
-    measurments = []
+        anchors,_,base= check_station_ECEF(stations)
 
-    for i in range(len(anchors)):
-        measurments.append([receiver(anchors[i]), ranges[i]/C_VELOCITY, 0.00001])
+        measurments = []
+
+        for i in range(len(anchors)):
+            measurments.append([receiver(anchors[i]), ranges[i]/C_VELOCITY, 0.00001])
 
 
 
-    #print(starting_position_for_loop_github)
-    t = time.time()
-    estimator,ret= solveKnownTime(measurments, plane['position'][2], 0.3038,
-                        starting_position_for_loop_github,0)
-    #print(estimator)
-    timeGithubKnownTime.append(timeGithub[-1] + time.time() - t)
+        #print(starting_position_for_loop_github)
+        t = time.time()
+        estimator,ret= solveKnownTime(measurments, plane['position'][2], 0.3038,
+                            starting_position_for_loop_github,0)
+        #print(estimator)
+        timeGithubKnownTime.append(timeGithub[-1] + time.time() - t)
 
-    estimator_earth_axis = pm.ecef2geodetic(estimator[0], estimator[1], estimator[2])
+        estimator_earth_axis = pm.ecef2geodetic(estimator[0], estimator[1], estimator[2])
 
-    measurments_x_githubKnownTime.append(estimator_earth_axis[0])
-    measurments_y_githubKnownTime.append(estimator_earth_axis[1])
+        measurments_x_githubKnownTime.append(estimator_earth_axis[0])
+        measurments_y_githubKnownTime.append(estimator_earth_axis[1])
 
-    errorGithubKnownTime += np.linalg.norm(pm.geodetic2enu(plane['position'][0],plane['position'][1],plane['position'][2],estimator_earth_axis[0],estimator_earth_axis[1],estimator_earth_axis[2]))
+        errorGithubKnownTime += np.linalg.norm(pm.geodetic2enu(plane['position'][0],plane['position'][1],plane['position'][2],estimator_earth_axis[0],estimator_earth_axis[1],estimator_earth_axis[2]))
 
 
     if False:
@@ -221,19 +237,32 @@ for i in range(1000):
 
 
 #print('błąd dla algorytmu Foya wynosi:',errorFoy/1000)
-print('błąd dla algorytmu Githuba ze znanym czasem wynosi:',errorGithubKnownTime/1000)
-print('błąd dla algorytmu Githuba wynosi:',errorGithub/1000)
+plt.plot(x,y,label='Prawdziwa pozycja')
+if githubFlagKnownTime:
+    print('błąd dla algorytmu Githuba ze znanym czasem wynosi:',errorGithubKnownTime/1000)
+    plt.plot(measurments_x_githubKnownTime, measurments_y_githubKnownTime, 'yx',
+             label='Metoda otwarta z githuba ze znanym czasem wysłania')
+
+if githubFlag:
+    print('błąd dla algorytmu Githuba wynosi:',errorGithub/1000)
+    plt.plot(measurments_x_githubKnownTime, measurments_y_github, 'bx', label='Metoda z githuba')
+if closedFlag:
+    print('błąd dla algorytmu zamkniętego wynosi:',errorClosed/1000)
+    plt.plot(measurments_x_closed, measurments_y_closed, 'gx', label='Metoda zamknięta')
+
+if foyFlag:
+    print('błąd dla algorytmu otwartego wynosi:',errorFoy/1000)
+    plt.plot(measurments_x, measurments_y, 'kx', label='Metoda Foya')
+
 
 
 #plt.plot(measurments_x_closed,measurments_y_closed,'kx',label='Metoda zamknięta')
 
 #print(measurments_x_closed,measurments_y_closed)
 #plt.plot(measurments_x,measurments_y,'gx',label='Metoda otwarta')
-plt.plot(x,y,label='Prawdziwa pozycja')
-plt.plot(measurments_x_githubKnownTime,measurments_y_githubKnownTime,'yx',label='Metoda otwarta z githuba ze znanym czasem wysłania')
-plt.plot(measurments_x_githubKnownTime,measurments_y_github,'bx',label='Metoda otwarta z githuba')
-print(x)
-print(y)
+
+
+
 plt.legend()
 plt.show()
 plt.plot(timeGithub,label='SciPy method')

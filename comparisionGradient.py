@@ -22,7 +22,7 @@ produce a position.
 """
 
 import math
-
+import numpy as np
 import scipy.optimize
 
 import geodesy
@@ -52,6 +52,25 @@ Cair = 299792458 / 1.0003
 
 #glogger = logging.getLogger("solver")
 
+def _Jacobian(x_guess, pseudorange_data, altitude, altitude_error):
+    Jacobian = np.zeros([len(pseudorange_data),len(x_guess)])
+
+    (*position_guess, offset) = x_guess
+    i=0
+    for receiver_position, pseudorange, error in pseudorange_data:
+        pseudorange_guess = geodesy.ecef_distance(receiver_position, position_guess) - offset
+        distance_to_receiver =geodesy.ecef_distance(receiver_position, position_guess)
+        Jacobian[i,0:3] = ((position_guess-receiver_position)/distance_to_receiver)
+        Jacobian[i,3] = Cair
+        i+=1
+    #add alt
+    if altitude is not None:
+        lat_origing,lon_origin,altitude_guess = geodesy.ecef2llh(position_guess)
+        gradient = np.array([np.cos(lon_origin)*np.cos(lat_origing),np.sin(lon_origin)*np.cos(lat_origing),np.sin(lat_origing),0])
+        Jacobian = np.append(Jacobian,gradient)
+        Jacobian = np.reshape(Jacobian, (9, 4))
+
+    return Jacobian
 
 def _residuals(x_guess, pseudorange_data, altitude, altitude_error):
     """Return an array of residuals for a position guess at x_guess versus
@@ -74,7 +93,7 @@ def _residuals(x_guess, pseudorange_data, altitude, altitude_error):
     return res
 
 
-def solve(measurements, altitude, altitude_error, initial_guess):
+def solveKnownTime(measurements, altitude, altitude_error, initial_guess):
     """Given a set of receive timestamps, multilaterate the position of the transmitter.
     measurements: a list of (receiver, timestamp, error) tuples. Should be sorted by timestamp.
       receiver.position should be the ECEF position of the receiver
@@ -100,6 +119,7 @@ def solve(measurements, altitude, altitude_error, initial_guess):
     res= scipy.optimize.least_squares(
         _residuals,
         x_guess,
+        jac=_Jacobian,
         args=(pseudorange_data, altitude, altitude_error),
         max_nfev=SOLVER_MAXFEV)
 
@@ -124,7 +144,6 @@ def solve(measurements, altitude, altitude_error, initial_guess):
                 return None
 
         return position_est,None
-
 
     else:
         # Solver failed

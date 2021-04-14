@@ -4,14 +4,14 @@ from copy import deepcopy
 import pymap3d as pm
 from mlat import MLAT
 from comparison import solve
-from comparisonKnownTime import solveKnownTime
+from comparisionGradient import solveKnownTime
 import time
 
 
-foyFlag=True
+foyFlag=False
 githubFlag=True
 githubFlagKnownTime=True
-closedFlag=True
+closedFlag=False
 
 CENTER = {
   "lat": 53.39624,
@@ -154,13 +154,13 @@ for i in range(1000):
 
     #TO DO state estimator
 
-    estimation = estimator
+        estimation = estimator
 
-    starting_position_for_loop = estimation
+        starting_position_for_loop = estimation
 
     # CLOSE METHOD
 
-    if closedMethods:
+    if closedFlag:
 
         estimator, _ = MLAT.mlat(anchors, ranges, height=plane['position'][2],
                                       starting_location=starting_position_for_loop,
@@ -183,13 +183,13 @@ for i in range(1000):
         measurments = []
 
         for i in range(len(anchors)):
-            measurments.append([receiver(anchors[i]), ranges[i]/C_VELOCITY, 0.00001])
+            measurments.append([receiver(anchors[i]), ranges[i]/C_VELOCITY, 1])
 
 
 
         #print(starting_position_for_loop_github)
         t = time.time()
-        estimator,ret= solve(measurments, plane['position'][2], 0.3038,
+        estimator,ret= solve(measurments, plane['position'][2], 1,
                             starting_position_for_loop_github)
         #print(estimator)
         timeGithub.append(timeGithub[-1] + time.time() - t)
@@ -210,16 +210,16 @@ for i in range(1000):
         measurments = []
 
         for i in range(len(anchors)):
-            measurments.append([receiver(anchors[i]), ranges[i]/C_VELOCITY, 0.00001])
+            measurments.append([receiver(anchors[i]), ranges[i]/C_VELOCITY, 1])
 
 
 
         #print(starting_position_for_loop_github)
         t = time.time()
-        estimator,ret= solveKnownTime(measurments, plane['position'][2], 0.3038,
-                            starting_position_for_loop_github,0)
+        estimator,ret= solveKnownTime(measurments, plane['position'][2],1,
+                            starting_position_for_loop_github)
         #print(estimator)
-        timeGithubKnownTime.append(timeGithub[-1] + time.time() - t)
+        timeGithubKnownTime.append(timeGithubKnownTime[-1] + time.time() - t)
 
         estimator_earth_axis = pm.ecef2geodetic(estimator[0], estimator[1], estimator[2])
 
@@ -245,7 +245,7 @@ if githubFlagKnownTime:
 
 if githubFlag:
     print('błąd dla algorytmu Githuba wynosi:',errorGithub/1000)
-    plt.plot(measurments_x_githubKnownTime, measurments_y_github, 'bx', label='Metoda z githuba')
+    plt.plot(measurments_x_github, measurments_y_github, 'bx', label='Metoda z githuba')
 if closedFlag:
     print('błąd dla algorytmu zamkniętego wynosi:',errorClosed/1000)
     plt.plot(measurments_x_closed, measurments_y_closed, 'gx', label='Metoda zamknięta')

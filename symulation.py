@@ -4,7 +4,7 @@ from copy import deepcopy
 import pymap3d as pm
 from mlat import MLAT
 from comparison import solve
-from comparisionGradient import solveKnownTime
+from comparisonTDOA import solveKnownTime
 import time
 
 
@@ -20,7 +20,7 @@ CENTER = {
 RADIUS = 25000
 VARIANCE = 10**(-9)*70
 C_VELOCITY = 299792458/ 1.0003#m/s
-NUMBER_OF_STATIONS=8
+SET_OF_STATIONS=1
 np.random.seed(46)
 
 class receiver:
@@ -28,17 +28,32 @@ class receiver:
         self.position=position
 
 def place_stations_circle(number,center,radius,height_max=100):
+    '''
     step = np.pi*2/number
     current_step=0
     stations=[]
     for _ in range(number):
-        x=np.cos(current_step)*radius*np.random.uniform(0.5,1)
-        y=np.sin(current_step)*radius*np.random.uniform(0.5,1)
-        z=np.random.uniform(0,height_max)
+        x=np.cos(current_step)*radius
+        y=np.sin(current_step)*radius
+        z=0
         #stations_xyz.append([x,y,z])
         stations.append(pm.enu2geodetic(x,y,z,center['lat'],center['long'],0))
         current_step+=step
     return stations
+    '''
+
+    if number ==1:
+        return [[53.3956 , 15.0048 , 0],[53.5906 , 14.4402 , 0],[53.2016 , 14.4419 , 0]]
+    if number ==2:
+        return [[53.3956 , 15.0048 , 0],[53.6098, 14.7457 , 0],[53.5279 ,  14.3240 , 0],[53.2638,14.3259,0],[53.1825 ,14.7445 ,0]]
+    if number ==3:
+        return [[53.3956 ,14.7457 , 0],[53.6098, 14.7457 , 0],[53.5279 ,  14.3240 , 0],[53.2638,14.3259,0],[53.1825 ,14.7457 ,0]]
+    if number ==4:
+        return [[53.3956 , 15.0048 , 0],[53.6098, 14.7457 , 200],[53.5279 ,  14.3240 , 500],[53.2638,14.3259,200],[53.1825 ,14.7445 ,500]]
+    if number ==5:
+        return [[53.3956 , 15.0048 , 0],[53.5548,14.8957 , 0],[53.6209 ,  14.6290 , 0],[53.5548,14.3623,0],[53.3957 , 14.2532 ,0],
+                [53.2371 , 14.3642 ,0],[53.1716 , 14.6289 ,0],[53.2371 , 14.8937 ,0]]
+    raise "wrong set of stations"
 
 def plane_step(plane,t_step=0.1,input=None):
     plane['position'] += plane['velocity']*t_step+plane['acceleration']*t_step*0.5
@@ -96,10 +111,10 @@ def check_station_ECEF(position):
 
 
 
-stations = place_stations_circle(NUMBER_OF_STATIONS,CENTER,25000)
+stations = place_stations_circle(SET_OF_STATIONS,CENTER,25000)
 for s in stations:
     plt.plot(s[0],s[1],'rx',label='stacje')
-
+print(stations)
 plane = create_plane(CENTER,RADIUS,)
 x=[]
 y=[]

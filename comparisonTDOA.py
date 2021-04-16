@@ -79,7 +79,7 @@ def _residuals(x_guess, pseudorange_data, altitude, altitude_error):
     return res
 
 
-def solveKnownTime(measurements, altitude, altitude_error, initial_guess):
+def solveTDOA(measurements, altitude, altitude_error, initial_guess):
     """Given a set of receive timestamps, multilaterate the position of the transmitter.
     measurements: a list of (receiver, timestamp, error) tuples. Should be sorted by timestamp.
       receiver.position should be the ECEF position of the receiver

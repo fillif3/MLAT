@@ -4,7 +4,7 @@ import pymap3d as pm
 import matplotlib.pyplot as plt
 import statistics
 from mpl_toolkits.mplot3d import Axes3D
-import seaborn as sns
+#import seaborn as sns
 from copy import deepcopy
 def compute_DOP_MAP(anchors,lan_border,long_border,altitude=1000,lan_step=0.01,long_step=0.02,base=-1,case='3D'):
 

@@ -26,7 +26,7 @@ class KalmanMLAT:
             #                       / step_size[1] - (measurment[1][1] - measurment[0][1]) / step_size[0]) / (
             #                                  step_size[1] + step_size[0])]
             #                      )
-            self.state = np.array([measurment[1][0], measurment[1][1], 0, 0,0,0])
+            self.state = np.array([measurment[0], measurment[1], 0, 0,0,0])
 
             self.variance_TDOA = variance_TDOA
             R = self.computeRMatrix(Ground_stations,height,base)*variance_TDOA
@@ -48,7 +48,7 @@ class KalmanMLAT:
             self.P[3, 5] = self.P[5, 3] = -R[1, 1] / (step_size[1] + step_size[0]) ** 2
             self.P[0, 4] = self.P[4, 0] = -R[0, 0] / (step_size[1] + step_size[0]) ** 4
             self.P[1, 5] = self.P[5, 1] = -R[1, 1] / (step_size[1] + step_size[0]) ** 4'''
-            self.P = np.eye(6)*10000
+            self.P = np.eye(6)*10000000
         else:
 
             self.P = np.zeros([4, 4])

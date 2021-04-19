@@ -8,16 +8,14 @@ from comparisonTDOA import solveTDOA
 from comparisonKnownTime import solveKnownTime
 import time
 import statistics
-from kalman import KalmanMLAT
 
 
-foyFlag=False
+foyFlag=True
 githubFlag=True
-githubFlagKnownTime=False
-githubFlagKnownTimePlusNoise=False
-githubFlagTDOA=False
+githubFlagKnownTime=True
+githubFlagKnownTimePlusNoise=True
+githubFlagTDOA=True
 closedFlag=False
-estimateStateGithub = True
 
 CENTER = {
   "lat": 53.39624,
@@ -62,17 +60,13 @@ def place_stations_circle(number,center,radius,height_max=100):
     raise Exception("wrong set of stations")
 
 def plane_step(plane,t_step=0.1,input=None):
-    added = plane['velocity']*t_step*np.array([np.cos(plane['direction']),np.sin(plane['direction']),0])+plane['acceleration_lin']*t_step*0.5*np.array([np.cos(plane['direction']),np.sin(plane['direction']),0])
-    plane['position'] += added
-    plane['velocity'] +=plane['acceleration_lin']*t_step
-    plane['direction'] +=plane['acceleration_rot']*t_step
+    plane['position'] += plane['velocity']*t_step+plane['acceleration']*t_step*0.5
+    plane['velocity'] +=plane['acceleration']*t_step
     if input is not None:
-        plane['acceleration_lin'] +=input[0]*t_step
-        plane['acceleration_rot'] +=input[1]*t_step
+        plane['accelartion'] +=None
     return plane
 
-def create_plane(center,radius,radius_multiplier,direction=None,velocity=250,acceleration=0,height=5000,acceleration_rot=0):
-    print(center)
+def create_plane(center,radius,radius_multiplier,direction=None,velocity=250,acceleration=0,height=5000):
     plane={}
     if direction is None:
         direction =np.pi/4#np.random.uniform(0,2*np.pi)
@@ -83,13 +77,11 @@ def create_plane(center,radius,radius_multiplier,direction=None,velocity=250,acc
     vy = velocity*np.cos(np.pi+direction)/(1852*60)
     vx = velocity*np.sin(direction)/(1852*60*np.cos(center['lat']))
     vz=0
-    #ax = acceleration * np.cos(np.pi+direction) / (1852 * 60)
-    #ay = acceleration * np.sin(np.pi+direction) / (1852 * 60 * np.cos(center['lat']))
-    #az = 0
-    plane['velocity'] = np.linalg.norm([vx,vy])#np.array([vx,vy,vz])
-    plane['direction'] = np.arctan2(vy,vx)
-    plane['acceleration_lin'] =acceleration
-    plane['acceleration_rot'] = acceleration_rot
+    ax = acceleration * np.cos(np.pi+direction) / (1852 * 60)
+    ay = acceleration * np.sin(np.pi+direction) / (1852 * 60 * np.cos(center['lat']))
+    az = 0
+    plane['velocity'] = np.array([vx,vy,vz])
+    plane['acceleration'] = np.array([ax,ay,az])
     return plane
 
 def compute_ranges(stations,position,time_variance,c_vel=299792458/ 1.0003):
@@ -121,18 +113,11 @@ def check_station_ECEF(position):
 
     return position_xyz2,bounds,position
 
-def stationsToAnchorsENU(stations):
-    anchors=[]
-    for station in stations:
-        anchors.append(pm.geodetic2enu(station[0],station[1],station[2],stations[0][0],stations[0][1],stations[0][2]))
-    return anchors
 
 
 
-
-for setOfStations in range(5,6):
+for setOfStations in range(3,6):
     stations = place_stations_circle(setOfStations, CENTER, 25000)
-    anchorsENU = stationsToAnchorsENU(stations)
     starting_position_for_loop_foy= pm.geodetic2enu(CENTER['lat'], CENTER['long'], 0, stations[0][0], stations[0][1],
                                                  stations[0][2])
 
@@ -146,20 +131,15 @@ for setOfStations in range(5,6):
     starting_position_for_loop_github_knownTime = deepcopy(starting_position_for_loop_github)
     starting_position_for_loop_github_knownTimePlusNoise = deepcopy(starting_position_for_loop_github)
 
-    #if (setOfStations)>= 2:
-    #    closedFlag = True
-    for part_of_way in range(1,3):
+    if (setOfStations)>= 2:
+        closedFlag = True
+    for part_of_way in range(4):
         print('For set of stations equal to '+str(setOfStations)+" and part of way equal to ",part_of_way)
-        starting_radius = 1.3
+        starting_radius = 2-float(part_of_way)/2
 
-        for s in stations:
-            plt.plot(s[0],s[1],'rx',label='stacje')
-        if part_of_way == 1:
-            plane = create_plane(CENTER,RADIUS,starting_radius,acceleration_rot=0.002)
-        else:
-            plane = create_plane(CENTER, RADIUS, starting_radius)
-
-
+        #for s in stations:
+        #    plt.plot(s[0],s[1],'rx',label='stacje')
+        plane = create_plane(CENTER,RADIUS,starting_radius)
         x=[]
         y=[]
         measurments_x =[]
@@ -168,8 +148,6 @@ for setOfStations in range(5,6):
         measurments_y_closed =[]
         measurments_x_github =[]
         measurments_y_github =[]
-        measurments_x_github_estimation =[]
-        measurments_y_github_estimation =[]
         measurments_x_githubTDOA = []
         measurments_y_githubTDOA = []
         measurments_x_githubKnownTime=[]
@@ -178,28 +156,21 @@ for setOfStations in range(5,6):
         measurments_y_githubKnownTimePlusNoise=[]
         #helper = pm.geodetic2ecef(CENTER['lat'],CENTER['long'],0)
         #print(helper)
-        errorFoy =[]
+        errorFoy =[0]
         timeFoy=[0]
         errorClosed=[0]
-        errorGithub=[]
-        errorGithubStateEstimation=[]
-        errorGithubTDOA = []
-        errorGithubKnownTime=[]
-        errorGithubKnownTimePlusNoise=[]
+        errorGithub=[0]
+        errorGithubTDOA = [0]
+        errorGithubKnownTime=[0]
+        errorGithubKnownTimePlusNoise=[0]
         timeGithub=[0]
         timeGithubTDOA = [0]
         timeGithubKnownTime=[0]
         timeGithubKnownTimePlusNoise=[0]
-        print(plane)
-        for i in range(3000):
-            #if i%50==0:
-            #    print(i)
-            if (part_of_way==2) and i==1500:
-                plane['acceleration_rot'] = 0.01
-            if (part_of_way==2) and i==2000:
-                plane['acceleration_rot'] = 0
+        for i in range(500):
+            if i%10==0:
+                print(i)
             plane=plane_step(plane)
-
             #plane = plane_step(plane)
 
 
@@ -258,8 +229,8 @@ for setOfStations in range(5,6):
 
                 measurments = []
 
-                for j in range(len(anchors)):
-                    measurments.append([receiver(anchors[j]), ranges[j]/C_VELOCITY, 1])
+                for i in range(len(anchors)):
+                    measurments.append([receiver(anchors[i]), ranges[i]/C_VELOCITY, 1])
 
 
 
@@ -276,29 +247,6 @@ for setOfStations in range(5,6):
                 measurments_y_github.append(estimator_earth_axis[1])
 
                 errorGithub.append(np.linalg.norm(pm.geodetic2enu(plane['position'][0],plane['position'][1],plane['position'][2],estimator_earth_axis[0],estimator_earth_axis[1],estimator_earth_axis[2])))
-
-                if estimateStateGithub:
-                    if i==0:
-                        A = np.array(
-                            [[1, 0, -1, 0, 0, 0], [0, 1, 0, -1, 0, 0], [0, 0, 1, 0, -1, 0], [0, 0, 0, 1, 0, -1],
-                             [0, 0, 0, 0, 1, 0],
-                             [0, 0, 0, 0, 0, 1]], dtype=float)
-                        C = np.array([[1, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0]], dtype=float)
-                        observation = np.array(
-                            [estimator_earth_axis[0], estimator_earth_axis[1]])
-                        t_step = 0.1
-                        plane_state_estimation = KalmanMLAT(A, C, observation, t_step, 70 / (10 ** (9)) * C_VELOCITY, anchorsENU,5000,
-                                                 stations[0])
-
-                    else:
-                        observation = np.array(
-                            [estimator_earth_axis[0], estimator_earth_axis[1]])
-                        plane_state_estimation.update(observation,0.1,anchors,5000,stations[0])
-                    measurments_x_github_estimation.append(plane_state_estimation.state[0])
-                    measurments_y_github_estimation.append(plane_state_estimation.state[1])
-                    errorGithubStateEstimation.append(np.linalg.norm(
-                        pm.geodetic2enu(plane['position'][0], plane['position'][1], plane['position'][2],
-                                        plane_state_estimation.state[0], plane_state_estimation.state[1], estimator_earth_axis[2])))
 
                 #starting_position_for_loop_github=estimator
 
@@ -389,12 +337,10 @@ for setOfStations in range(5,6):
                 plt.plot(x[-1],y[-1],'b*',label='Prawdziwa pozycja')
                 plt.plot(measurments_x_github[-1], measurments_y_github[-1], 'yx', label='Metoda otwarta z githuba')
                 plt.show()
-        #print('----------')
-        #print(plane)
 
 
-            #print('błąd dla algorytmu Foya wynosi:',errorFoy/1000)
-        plt.plot(x,y,label='Prawdziwa pozycja')
+        #print('błąd dla algorytmu Foya wynosi:',errorFoy/1000)
+        #plt.plot(x,y,label='Prawdziwa pozycja')
         if githubFlagTDOA:
             print('Średnia, mediana oraz odchylenie standardowe Githuba z TDOA:')
             print(statistics.mean(errorGithubTDOA))
@@ -423,13 +369,7 @@ for setOfStations in range(5,6):
             print(statistics.mean(errorGithub))
             print(statistics.median(errorGithub))
             print(statistics.stdev(errorGithub))
-            plt.plot(measurments_x_github, measurments_y_github, 'gx', label='Metoda z githuba')
-            if estimateStateGithub:
-                print('Średnia, mediana oraz odchylenie standardowe kalmana z Githuba wynosi:')
-                print(statistics.mean(errorGithubStateEstimation))
-                print(statistics.median(errorGithubStateEstimation))
-                print(statistics.stdev(errorGithubStateEstimation))
-                plt.plot(measurments_x_github_estimation, measurments_y_github_estimation, 'kx', label='Metoda z githuba')
+            #plt.plot(measurments_x_github, measurments_y_github, 'bx', label='Metoda z githuba')
         if closedFlag:
             print('Średnia, mediana oraz odchylenie standardowe zamknięty:')
             print(statistics.mean(errorClosed))
@@ -442,7 +382,7 @@ for setOfStations in range(5,6):
             print(statistics.mean(errorFoy))
             print(statistics.median(errorFoy))
             print(statistics.stdev(errorFoy))
-                #plt.plot(measurments_x, measurments_y, 'kx', label='Metoda Foya')
+            #plt.plot(measurments_x, measurments_y, 'kx', label='Metoda Foya')
 
 
 
@@ -453,12 +393,8 @@ for setOfStations in range(5,6):
 
 
 
-        plt.legend()
-        plt.show()
-        plt.plot(errorGithubStateEstimation)
-        plt.plot(errorGithub)
-        plt.show()
-
+        #plt.legend()
+        #plt.show()
         #plt.plot(timeGithub,label='SciPy method')
         #plt.plot(timeGithubKnownTime,label='SciPy method with known time')
 

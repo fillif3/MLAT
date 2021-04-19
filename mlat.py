@@ -245,8 +245,7 @@ class MLAT:
 
                 error_next = MLAT.compute_errors(anchors, ranges_in, estimator_next)
 
-                if (iter < 3) or (np.linalg.norm(error_next) < np.linalg.norm(errors)):
-                    err = np.linalg.norm(error_next)
+                if np.linalg.norm(error_next) < np.linalg.norm(errors):
                     reference = estimator_next
                 else:
                     result['estimator'][i] = reference

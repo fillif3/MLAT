@@ -114,13 +114,29 @@ def check_station_ECEF(position):
     return position_xyz2,bounds,position
 
 
-for setOfStations in range(1,6):
-    if (setOfStations)== 2:
+
+
+for setOfStations in range(3,6):
+    stations = place_stations_circle(setOfStations, CENTER, 25000)
+    starting_position_for_loop_foy= pm.geodetic2enu(CENTER['lat'], CENTER['long'], 0, stations[0][0], stations[0][1],
+                                                 stations[0][2])
+
+    starting_position_for_loop_github = pm.enu2geodetic(starting_position_for_loop_foy[0], starting_position_for_loop_foy[1],
+                                                        starting_position_for_loop_foy[2], stations[0][0], stations[0][1],
+                                                        stations[0][2])
+    starting_position_for_loop_github = pm.geodetic2ecef(starting_position_for_loop_github[0],
+                                                         starting_position_for_loop_github[1],
+                                                         starting_position_for_loop_github[2])
+    starting_position_for_loop_github_TDOA = deepcopy(starting_position_for_loop_github)
+    starting_position_for_loop_github_knownTime = deepcopy(starting_position_for_loop_github)
+    starting_position_for_loop_github_knownTimePlusNoise = deepcopy(starting_position_for_loop_github)
+
+    if (setOfStations)>= 2:
         closedFlag = True
     for part_of_way in range(4):
         print('For set of stations equal to '+str(setOfStations)+" and part of way equal to ",part_of_way)
         starting_radius = 2-float(part_of_way)/2
-        stations = place_stations_circle(setOfStations,CENTER,25000)
+
         #for s in stations:
         #    plt.plot(s[0],s[1],'rx',label='stacje')
         plane = create_plane(CENTER,RADIUS,starting_radius)
@@ -138,7 +154,6 @@ for setOfStations in range(1,6):
         measurments_y_githubKnownTime=[]
         measurments_x_githubKnownTimePlusNoise=[]
         measurments_y_githubKnownTimePlusNoise=[]
-        starting_position_for_loop =pm.geodetic2enu(CENTER['lat'],CENTER['long'],0,stations[0][0],stations[0][1],stations[0][2])
         #helper = pm.geodetic2ecef(CENTER['lat'],CENTER['long'],0)
         #print(helper)
         errorFoy =[0]
@@ -166,9 +181,7 @@ for setOfStations in range(1,6):
             #starting_position_for_loop = [100,100,100]
             ranges = compute_ranges(stations, plane['position'], time_variance= 70*10**(-9))
 
-            starting_position_for_loop_github = pm.enu2geodetic(starting_position_for_loop[0], starting_position_for_loop[1], starting_position_for_loop[2], stations[0][0], stations[0][1],
-                                                   stations[0][2])
-            starting_position_for_loop_github = pm.geodetic2ecef(starting_position_for_loop_github[0],starting_position_for_loop_github[1],starting_position_for_loop_github[2])
+
             # FOY
 
             if foyFlag:
@@ -177,8 +190,8 @@ for setOfStations in range(1,6):
                 t = time.time()
                 # testing
 
-                estimator, _ = MLAT.mlat(anchors, ranges, height=plane['position'][2], starting_location = starting_position_for_loop,
-                                                method='taylor2.5D_sphere_dll', base_station=base)
+                estimator, _ = MLAT.mlat(anchors, ranges, height=plane['position'][2], starting_location = starting_position_for_loop_foy,
+                                                method='taylor2.5D_sphere', base_station=base)
                 timeFoy.append(timeFoy[-1]+time.time()-t)
                 estimator_earth_axis = pm.enu2geodetic(estimator[0],estimator[1],estimator[2],stations[0][0],stations[0][1],stations[0][2])
                 measurments_x.append(estimator_earth_axis[0])
@@ -188,16 +201,16 @@ for setOfStations in range(1,6):
 
             #TO DO state estimator
 
-                #estimation = estimator
+                estimation = estimator
 
-                #starting_position_for_loop = estimation
+                #starting_position_for_loop_foy = estimation
 
             # CLOSE METHOD
 
             if closedFlag:
 
                 estimator, _ = MLAT.mlat(anchors, ranges, height=plane['position'][2],
-                                              starting_location=starting_position_for_loop,
+                                              starting_location=starting_position_for_loop_foy,
                                               method='schau', base_station=base)
 
                 estimator_earth_axis = pm.enu2geodetic(estimator[0], estimator[1], estimator[2], stations[0][0], stations[0][1],
@@ -235,6 +248,8 @@ for setOfStations in range(1,6):
 
                 errorGithub.append(np.linalg.norm(pm.geodetic2enu(plane['position'][0],plane['position'][1],plane['position'][2],estimator_earth_axis[0],estimator_earth_axis[1],estimator_earth_axis[2])))
 
+                #starting_position_for_loop_github=estimator
+
             # GITHUB TDOA
 
             if githubFlagTDOA:
@@ -251,7 +266,7 @@ for setOfStations in range(1,6):
                 #print(starting_position_for_loop_github)
                 t = time.time()
                 estimator,ret= solveTDOA(measurments, plane['position'][2],1,
-                                    starting_position_for_loop_github)
+                                    starting_position_for_loop_github_TDOA)
                 #print(estimator)
                 timeGithubTDOA.append(timeGithubTDOA[-1] + time.time() - t)
 
@@ -261,6 +276,8 @@ for setOfStations in range(1,6):
                 measurments_y_githubTDOA.append(estimator_earth_axis[1])
 
                 errorGithubTDOA.append(np.linalg.norm(pm.geodetic2enu(plane['position'][0],plane['position'][1],plane['position'][2],estimator_earth_axis[0],estimator_earth_axis[1],estimator_earth_axis[2])))
+
+                #starting_position_for_loop_github_TDOA=estimator
 
             # GITHUB known time
 
@@ -277,7 +294,7 @@ for setOfStations in range(1,6):
                 #print(starting_position_for_loop_github)
                 t = time.time()
                 estimator,ret= solveKnownTime(measurments, plane['position'][2],1,
-                                    starting_position_for_loop_github,0)
+                                    starting_position_for_loop_github_knownTime,0)
                 #print(estimator)
                 timeGithubKnownTime.append(timeGithubKnownTime[-1] + time.time() - t)
 
@@ -288,7 +305,7 @@ for setOfStations in range(1,6):
 
                 errorGithubKnownTime.append(np.linalg.norm(pm.geodetic2enu(plane['position'][0],plane['position'][1],plane['position'][2],estimator_earth_axis[0],estimator_earth_axis[1],estimator_earth_axis[2])))
 
-
+                #starting_position_for_loop_github_knownTime = estimator
             if githubFlagKnownTimePlusNoise:
                 anchors,_,base= check_station_ECEF(stations)
 
@@ -302,7 +319,7 @@ for setOfStations in range(1,6):
                 #print(starting_position_for_loop_github)
                 t = time.time()
                 estimator,ret= solveKnownTime(measurments, plane['position'][2],1,
-                                    starting_position_for_loop_github,np.random.rand()*10**(-8))
+                                    starting_position_for_loop_github_knownTimePlusNoise,np.random.rand()*10**(-7))
                 #print(estimator)
                 timeGithubKnownTimePlusNoise.append(timeGithubKnownTime[-1] + time.time() - t)
 
@@ -313,6 +330,7 @@ for setOfStations in range(1,6):
 
                 errorGithubKnownTimePlusNoise.append(np.linalg.norm(pm.geodetic2enu(plane['position'][0],plane['position'][1],plane['position'][2],estimator_earth_axis[0],estimator_earth_axis[1],estimator_earth_axis[2])))
 
+                #starting_position_for_loop_github_knownTimePlusNoise = estimator
 
             if False:
                 plt.plot(measurments_x[-1],measurments_y[-1],'gx',label='Metoda otwarta')

@@ -1,4 +1,4 @@
-import gmplot
+'''import gmplot
 import os
 from DOP import compute_DOP_MAP
 from color_gradient import linear_gradient
@@ -45,4 +45,11 @@ for station in stations:
     gmap1.circle(station[0], station[1], 400,  ew=3, color='green')
 
 dir_path = os.path.dirname(os.path.realpath(__file__))+'/test.html'
-gmap1.draw(dir_path)
+gmap1.draw(dir_path)'''
+
+import control
+import numpy as np
+A = np.array([[1,0,0.1,0,0.005,0],[0,1,0,0.1,0,0.005],[0,0,1,0,0.1,0],[0,0,0,1,0,0.1],[0,0,0,0,1,0],[0,0,0,0,0,1]])
+C = np.array([[1,0,0,0,0,0],[0,1,0,0,0,0]])
+O = control.obsv(A, C)
+print(np.linalg.matrix_rank(O))

@@ -130,7 +130,7 @@ def stationsToAnchorsENU(stations):
 
 
 
-for setOfStations in range(5,6):
+for setOfStations in range(1,6):
     stations = place_stations_circle(setOfStations, CENTER, 25000)
     anchorsENU = stationsToAnchorsENU(stations)
     starting_position_for_loop_foy= pm.geodetic2enu(CENTER['lat'], CENTER['long'], 0, stations[0][0], stations[0][1],
@@ -148,7 +148,7 @@ for setOfStations in range(5,6):
 
     #if (setOfStations)>= 2:
     #    closedFlag = True
-    for part_of_way in range(1,3):
+    for part_of_way in range(0,3):
         print('For set of stations equal to '+str(setOfStations)+" and part of way equal to ",part_of_way)
         starting_radius = 1.3
 
@@ -294,8 +294,14 @@ for setOfStations in range(5,6):
                         observation = np.array(
                             [estimator_earth_axis[0], estimator_earth_axis[1]])
                         plane_state_estimation.update(observation,0.1,anchors,5000,stations[0])
+                    #if i in [2165,2168,2308,2309,2340,2544,2631,2716,2745,2746,2749,2813,2879,2944]:
+                     #   print(i)
                     measurments_x_github_estimation.append(plane_state_estimation.state[0])
                     measurments_y_github_estimation.append(plane_state_estimation.state[1])
+                    #if np.linalg.norm(
+                    #    pm.geodetic2enu(plane['position'][0], plane['position'][1], plane['position'][2],
+                    #                    plane_state_estimation.state[0], plane_state_estimation.state[1], estimator_earth_axis[2]))>2000:
+                    #    print('index',i)
                     errorGithubStateEstimation.append(np.linalg.norm(
                         pm.geodetic2enu(plane['position'][0], plane['position'][1], plane['position'][2],
                                         plane_state_estimation.state[0], plane_state_estimation.state[1], estimator_earth_axis[2])))
@@ -455,8 +461,9 @@ for setOfStations in range(5,6):
 
         plt.legend()
         plt.show()
-        plt.plot(errorGithubStateEstimation)
         plt.plot(errorGithub)
+        plt.plot(errorGithubStateEstimation)
+
         plt.show()
 
         #plt.plot(timeGithub,label='SciPy method')

@@ -48,7 +48,7 @@ class KalmanMLAT:
             self.P[3, 5] = self.P[5, 3] = -R[1, 1] / (step_size[1] + step_size[0]) ** 2
             self.P[0, 4] = self.P[4, 0] = -R[0, 0] / (step_size[1] + step_size[0]) ** 4
             self.P[1, 5] = self.P[5, 1] = -R[1, 1] / (step_size[1] + step_size[0]) ** 4'''
-            self.P = np.eye(6)*10000000
+            self.P = np.diag(np.array([10**4,10**4,10**18,10**18,10**16,10**16]))
         else:
 
             self.P = np.zeros([4, 4])
@@ -115,6 +115,8 @@ class KalmanMLAT:
             varaince_prediction = np.linalg.multi_dot([transition_matrix,self.P,np.transpose(transition_matrix)])
         except:
             print('1')
+
+        varaince_prediction+=np.diag(np.array([10**6,10**6,10**8,10**8,10**10,10**10]))
         transposed_H = np.transpose(self.H)
         R = self.computeRMatrix(groun_stations,height,base_ground_station)*self.variance_TDOA
         #print(R)
@@ -152,10 +154,16 @@ class KalmanMLAT:
 
     def computeRMatrix(self,Ground_stations,height,base):
         stationsGeo = []
+        meter_per_lat = 111320
+        meter_per_lon = 40075000 * np.cos(3.14 * self.state[0] / 180) / 360;
         for station in Ground_stations:
             stationsGeo.append(pm.enu2geodetic(station[0],station[1],station[2],base[0],base[1],base[2]))
         stationsXYZ = []
-        for station in stationsGeo:
-            stationsXYZ.append(pm.geodetic2enu(station[0],station[1],station[2],self.state[0],self.state[1],0))
+        for i,station in enumerate(stationsGeo):
+            stationsXYZ.append(np.array(pm.geodetic2enu(station[0],station[1],station[2],self.state[0],self.state[1],0)))
+            stationsXYZ[i][0]= stationsXYZ[i][0]/meter_per_lat
+            stationsXYZ[i][1] = stationsXYZ[i][1] / meter_per_lon
 
         return  compute_R_matrix_2D(np.array(stationsXYZ),[0,0,height])
+
+

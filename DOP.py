@@ -142,9 +142,9 @@ def compute_R_matrix_2D(anchors,position,base=-1):
         helper = deepcopy(anchors[base])
         anchors[base]=anchors[-1]
         anchors[-1]=helper
-    J=MLAT.compute_jacobian2_5D(anchors,position)
+    J=compute_jacobian2_5D_TOA(anchors,position)
     #print(J)
-    Q = compute_Q(len(anchors)-1)
+    Q = np.eye(len(anchors))#compute_Q(len(anchors)-1)
     #print(J)
     #print('1')
     try:
@@ -162,7 +162,7 @@ def compute_R_matrix_2D(anchors,position,base=-1):
         equation = np.dot(equation, J)
         #print(equation)
         helper = np.dot(equation, np.linalg.inv(np.dot(tran_J,J)))
-        return np.dot(equation, np.linalg.inv(np.dot(tran_J,J)))
+        return np.dot(equation, np.linalg.inv(np.dot(tran_J,J)))[0:2,0:2]
         #print(equation)
         #equation = np.dot(equation, tran_J)
 
@@ -170,6 +170,18 @@ def compute_R_matrix_2D(anchors,position,base=-1):
 
     except:
         return 1
+
+def compute_jacobian2_5D_TOA(anchors,position):
+    jacobian = np.zeros([len(anchors), 3])
+    # print(position)
+    # print(anchors)
+    #dist_to_refernce = np.linalg.norm(position - anchors[-1])
+    #refence_derievative = (position[0:2] - anchors[-1][0:2]) / dist_to_refernce
+    for i in range(len(anchors) - 1):
+        jacobian[i, 0:2] = (position[0:2] - anchors[i][0:2]) / np.linalg.norm(
+            position - anchors[i])
+        jacobian[i,2]=1
+    return jacobian
 
 def compute_Q(size_of_matrix):
     Q = np.eye(size_of_matrix)+np.ones((size_of_matrix,size_of_matrix))

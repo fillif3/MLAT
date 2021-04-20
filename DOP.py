@@ -137,7 +137,7 @@ def compute_DOP_2D(anchors,position,base=-1):
     except:
         return 1
 
-def compute_R_matrix_2D(anchors,position,base=-1):
+def compute_R_matrix_2D(anchors,position,base=-1,method='TOA'):
     if base!=-1:
         helper = deepcopy(anchors[base])
         anchors[base]=anchors[-1]

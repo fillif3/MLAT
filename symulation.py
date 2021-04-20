@@ -9,6 +9,7 @@ from comparisonKnownTime import solveKnownTime
 import time
 import statistics
 from kalman import KalmanMLAT
+from ufir import StateEstimation
 
 
 foyFlag=False
@@ -18,6 +19,8 @@ githubFlagKnownTimePlusNoise=False
 githubFlagTDOA=False
 closedFlag=False
 estimateStateGithub = True
+UFIRGithub = True
+UFIRWithoutOutliers=True
 
 CENTER = {
   "lat": 53.39624,
@@ -130,7 +133,7 @@ def stationsToAnchorsENU(stations):
 
 
 
-for setOfStations in range(1,6):
+for setOfStations in range(5,6):
     stations = place_stations_circle(setOfStations, CENTER, 25000)
     anchorsENU = stationsToAnchorsENU(stations)
     starting_position_for_loop_foy= pm.geodetic2enu(CENTER['lat'], CENTER['long'], 0, stations[0][0], stations[0][1],
@@ -170,6 +173,10 @@ for setOfStations in range(1,6):
         measurments_y_github =[]
         measurments_x_github_estimation =[]
         measurments_y_github_estimation =[]
+        measurments_x_github_UFIR = []
+        measurments_y_github_UFIR = []
+        measurments_x_github_UFIR_without_outliers = []
+        measurments_y_github_UFIR_without_outliers = []
         measurments_x_githubTDOA = []
         measurments_y_githubTDOA = []
         measurments_x_githubKnownTime=[]
@@ -183,6 +190,8 @@ for setOfStations in range(1,6):
         errorClosed=[0]
         errorGithub=[]
         errorGithubStateEstimation=[]
+        errorGithubUFIR = []
+        errorGithubUFIRWithoutOutliers = []
         errorGithubTDOA = []
         errorGithubKnownTime=[]
         errorGithubKnownTimePlusNoise=[]
@@ -293,7 +302,7 @@ for setOfStations in range(1,6):
                     else:
                         observation = np.array(
                             [estimator_earth_axis[0], estimator_earth_axis[1]])
-                        plane_state_estimation.update(observation,0.1,anchors,5000,stations[0])
+                        plane_state_estimation.update(observation,0.1,anchors,5000,stations[0],method='TOA')
                     #if i in [2165,2168,2308,2309,2340,2544,2631,2716,2745,2746,2749,2813,2879,2944]:
                      #   print(i)
                     measurments_x_github_estimation.append(plane_state_estimation.state[0])
@@ -307,6 +316,69 @@ for setOfStations in range(1,6):
                                         plane_state_estimation.state[0], plane_state_estimation.state[1], estimator_earth_axis[2])))
 
                 #starting_position_for_loop_github=estimator
+                if UFIRGithub:
+                    if i==0:
+                        timestampsUFIR = []
+                        observationsUFIR = []
+                    if i<10:
+                        observationsUFIR.append(estimator_earth_axis[0])
+                        observationsUFIR.append(estimator_earth_axis[1])
+                        timestampsUFIR.append(0.1)
+                    elif i==10:
+                        A = np.array(
+                            [[1, 0, -1, 0, -2, 0], [0, 1, 0, -1, 0, -2], [0, 0, 1, 0, -1, 0], [0, 0, 0, 1, 0, -1],
+                             [0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 0, 1]], dtype=float)
+                        C = np.array([[1, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0]], dtype=float)
+                        plane_state_estimation_UFIR = StateEstimation(A,C,observationsUFIR,timestampsUFIR)
+                    else:
+                        observation = np.array(
+                            [estimator_earth_axis[0], estimator_earth_axis[1]])
+                        plane_state_estimation_UFIR.update(observation,0.1,5000)
+
+
+
+                        measurments_x_github_UFIR.append(plane_state_estimation_UFIR.state[0])
+                        measurments_y_github_UFIR.append(plane_state_estimation_UFIR.state[1])
+                        # if np.linalg.norm(
+                        #    pm.geodetic2enu(plane['position'][0], plane['position'][1], plane['position'][2],
+                        #                    plane_state_estimation.state[0], plane_state_estimation.state[1], estimator_earth_axis[2]))>2000:
+                        #    print('index',i)
+                        errorGithubUFIR.append(np.linalg.norm(
+                            pm.geodetic2enu(plane['position'][0], plane['position'][1], plane['position'][2],
+                                            plane_state_estimation_UFIR.state[0], plane_state_estimation_UFIR.state[1],
+                                            estimator_earth_axis[2])))
+                if UFIRWithoutOutliers:
+                    if i==0:
+                        timestampsUFIR_without_outliers = []
+                        observationsUFIR_without_outliers = []
+                    if i<10:
+                        observationsUFIR_without_outliers.append(estimator_earth_axis[0])
+                        observationsUFIR_without_outliers.append(estimator_earth_axis[1])
+                        timestampsUFIR_without_outliers.append(0.1)
+                    elif i==10:
+                        A = np.array(
+                            [[1, 0, -1, 0, 0, 0], [0, 1, 0, -1, 0, 0], [0, 0, 1, 0, -1, 0], [0, 0, 0, 1, 0, -1],
+                             [0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 0, 1]], dtype=float)
+                        C = np.array([[1, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0]], dtype=float)
+                        plane_state_estimation_UFIR_without_outliers = StateEstimation(A,C,observationsUFIR_without_outliers,timestampsUFIR_without_outliers)
+                    else:
+                        observation = np.array(
+                            [estimator_earth_axis[0], estimator_earth_axis[1]])
+                        flag = plane_state_estimation_UFIR_without_outliers.update_excluding_outliers(observation,0.1,5000)
+
+
+
+                        measurments_x_github_UFIR_without_outliers.append(plane_state_estimation_UFIR.state[0])
+                        measurments_y_github_UFIR_without_outliers.append(plane_state_estimation_UFIR.state[1])
+                        # if np.linalg.norm(
+                        #    pm.geodetic2enu(plane['position'][0], plane['position'][1], plane['position'][2],
+                        #                    plane_state_estimation.state[0], plane_state_estimation.state[1], estimator_earth_axis[2]))>2000:
+                        #    print('index',i)
+                        if flag is not None:
+                            errorGithubUFIRWithoutOutliers.append(np.linalg.norm(
+                                pm.geodetic2enu(plane['position'][0], plane['position'][1], plane['position'][2],
+                                                plane_state_estimation_UFIR_without_outliers.state[0], plane_state_estimation_UFIR_without_outliers.state[1],
+                                                estimator_earth_axis[2])))
 
             # GITHUB TDOA
 
@@ -435,7 +507,13 @@ for setOfStations in range(1,6):
                 print(statistics.mean(errorGithubStateEstimation))
                 print(statistics.median(errorGithubStateEstimation))
                 print(statistics.stdev(errorGithubStateEstimation))
-                plt.plot(measurments_x_github_estimation, measurments_y_github_estimation, 'kx', label='Metoda z githuba')
+                plt.plot(measurments_x_github_estimation, measurments_y_github_estimation, 'kx', label='Kalman')
+            if UFIRGithub:
+                print('Średnia, mediana oraz odchylenie standardowe UFIR z Githuba wynosi:')
+                print(statistics.mean(errorGithubUFIR))
+                print(statistics.median(errorGithubUFIR))
+                print(statistics.stdev(errorGithubUFIR))
+                plt.plot(measurments_x_github_UFIR, measurments_y_github_UFIR, 'yx', label='UFIR')
         if closedFlag:
             print('Średnia, mediana oraz odchylenie standardowe zamknięty:')
             print(statistics.mean(errorClosed))
@@ -457,13 +535,17 @@ for setOfStations in range(1,6):
 #print(measurments_x_closed,measurments_y_closed)
 #plt.plot(measurments_x,measurments_y,'gx',label='Metoda otwarta')
 
-
+        t0 = np.linspace(10, 300, 2989)
+        t = np.linspace(0,300,3000)
 
         plt.legend()
         plt.show()
-        plt.plot(errorGithub)
-        plt.plot(errorGithubStateEstimation)
-
+        plt.plot(t,errorGithub, label='Raw')
+        plt.plot(t,errorGithubStateEstimation, label='Kalman')
+        #plt.plot(errorGithubUFIR, label='UFIR')
+        plt.plot(t0,errorGithubUFIRWithoutOutliers, label='UFIR')
+        plt.ylim(top=100,bottom=-10)
+        plt.legend()
         plt.show()
 
         #plt.plot(timeGithub,label='SciPy method')

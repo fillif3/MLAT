@@ -5,7 +5,7 @@ from DOP import compute_R_matrix_2D
 import matplotlib.pyplot as plt
 
 class KalmanMLAT:
-    def __init__(self,transition,observation_matrix,measurment,step_size,variance_TDOA,Ground_stations,height,base):
+    def __init__(self,transition,observation_matrix,measurment,step_size,variance_TDOA,Ground_stations,height,base,method='TOA'):
         self.A=transition
         self.H=observation_matrix
         self.treshold=None
@@ -29,7 +29,7 @@ class KalmanMLAT:
             self.state = np.array([measurment[0], measurment[1], 0, 0,0,0])
 
             self.variance_TDOA = variance_TDOA
-            R = self.computeRMatrix(Ground_stations,height,base)*variance_TDOA
+            R = self.computeRMatrix(Ground_stations,height,base,method)*variance_TDOA
             self.compute_P_Matrix(R,step_size,6)
 
 
@@ -107,7 +107,7 @@ class KalmanMLAT:
             R = helper * self.variance_TDOA
             self.compute_P_Matrix(R, [step_size,step_size], 6)
 
-    def update(self,measurment,step_size,groun_stations,height,base_ground_station):
+    def update(self,measurment,step_size,groun_stations,height,base_ground_station,method='TOA'):
         transition_matrix = self.compute_transition_matrix(step_size)
         self.index+=1
         state_prediction = np.dot(transition_matrix,self.state)
@@ -118,7 +118,7 @@ class KalmanMLAT:
 
         varaince_prediction+=np.diag(np.array([10**6,10**6,10**8,10**8,10**10,10**10]))
         transposed_H = np.transpose(self.H)
-        R = self.computeRMatrix(groun_stations,height,base_ground_station)*self.variance_TDOA
+        R = self.computeRMatrix(groun_stations,height,base_ground_station,method)*self.variance_TDOA
         #print(R)
         #if R[0][0]>100:
         #    print(self.index)
@@ -150,9 +150,11 @@ class KalmanMLAT:
             for j in range(len(self.A)):
                 if self.A[i,j]==-1:
                     transition_matrix[i, j] = timestamp
+                if self.A[i,j]==-2:
+                    transition_matrix[i, j] = 0.5*timestamp**2
         return transition_matrix
 
-    def computeRMatrix(self,Ground_stations,height,base):
+    def computeRMatrix(self,Ground_stations,height,base,method='TOA'):
         stationsGeo = []
         meter_per_lat = 111320
         meter_per_lon = 40075000 * np.cos(3.14 * self.state[0] / 180) / 360;
@@ -164,6 +166,7 @@ class KalmanMLAT:
             stationsXYZ[i][0]= stationsXYZ[i][0]/meter_per_lat
             stationsXYZ[i][1] = stationsXYZ[i][1] / meter_per_lon
 
-        return  compute_R_matrix_2D(np.array(stationsXYZ),[0,0,height])
+        if method=='TOA':
+            return  compute_R_matrix_2D(np.array(stationsXYZ),[0,0,height],method='TOA')
 
 

@@ -33,8 +33,12 @@ class StateEstimation:
         state= self.state
         error=self.update(observation,time_step,altitude)
         if self.treshold is None:
+            self.errorList=[]
             self.treshold = error
             return error
+        self.errorList.append(error)
+        if len(self.errorList)>100:
+            self.errorList.pop(0)
         #return error
         if error<(self.treshold*1.1):
             self.time_delay=0
@@ -46,15 +50,16 @@ class StateEstimation:
         self.number_of_outliers+=1
         #print(self.treshold)
         #print(self.number_of_outliers)
-        self.G=G
-        self.state=state
-        self.time_delay+=time_step
-        if self.number_of_outliers==5:
+        #self.G=G
+        #self.state=state
+        #self.time_delay+=time_step
+        #if self.number_of_outliers==5:
+        if np.mean(self.errorList)>80 and len(self.errorList)>99:
             self.recalculation()
             print('recalculation')
             print(self.estimation)
             pass
-        return None
+        return error
 
     def update(self,observation,time_step,altitude):
         self.previous_measurment.append(observation[0])
@@ -100,6 +105,8 @@ class StateEstimation:
             for j in range(len(self.A)):
                 if self.A[i,j]==-1:
                     transition_matrix[i, j] = timestamp
+                if self.A[i,j]==-2:
+                    transition_matrix[i, j] = 0.5*timestamp**2
         return transition_matrix
 
 

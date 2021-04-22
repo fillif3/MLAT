@@ -48,7 +48,7 @@ class KalmanMLAT:
             self.P[3, 5] = self.P[5, 3] = -R[1, 1] / (step_size[1] + step_size[0]) ** 2
             self.P[0, 4] = self.P[4, 0] = -R[0, 0] / (step_size[1] + step_size[0]) ** 4
             self.P[1, 5] = self.P[5, 1] = -R[1, 1] / (step_size[1] + step_size[0]) ** 4'''
-            self.P = np.diag(np.array([10**4,10**4,10**18,10**18,10**16,10**16]))
+            self.P = np.diag(np.array([10**12,10**12,10**18,10**18,10**16,10**16]))
         else:
 
             self.P = np.zeros([4, 4])
@@ -116,7 +116,7 @@ class KalmanMLAT:
         except:
             print('1')
 
-        varaince_prediction+=np.diag(np.array([10**6,10**6,10**8,10**8,10**10,10**10]))
+        varaince_prediction+=np.diag(np.array([10**(-2),10**(-2),10**0,10**0,10**3,10**3]))
         transposed_H = np.transpose(self.H)
         R = self.computeRMatrix(groun_stations,height,base_ground_station,method)*self.variance_TDOA
         #print(R)
@@ -126,9 +126,13 @@ class KalmanMLAT:
         kalman_gain = np.linalg.multi_dot([varaince_prediction,transposed_H,np.linalg.inv(np.linalg.multi_dot(
                                         [self.H,varaince_prediction,transposed_H])+R)])
         self.state = state_prediction + np.dot(kalman_gain,measurment-np.dot(self.H,state_prediction))
+        if self.state[0]>=90:
+            self.state[0]= 89
+        if self.state[0]>=90:
+            self.state[0]= 89
         self.P = varaince_prediction - np.linalg.multi_dot([kalman_gain,self.H,varaince_prediction])
-        return np.linalg.norm(np.array(pm.geodetic2enu(self.state[0], self.state[1], height,
-                                                       measurment[0], measurment[1], height)))
+        #return np.linalg.norm(np.array(pm.geodetic2enu(self.state[0], self.state[1], height,
+        #                                               measurment[0], measurment[1], height)))
 
     def compute_jacobian(self,anchors,height,base):
         jacobian=np.zeros([len(anchors)-1,2])
